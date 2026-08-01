@@ -54,7 +54,12 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "asistente-sios@local"
+      "id": "asistente-sios@local",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
     }
   }
 }

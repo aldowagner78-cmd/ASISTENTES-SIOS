@@ -13,9 +13,8 @@
   };
 
   function decodeHtml(value) {
-    const textarea = document.createElement("textarea");
-    textarea.innerHTML = value || "";
-    return textarea.value;
+    const parsed = new DOMParser().parseFromString(String(value || ""), "text/html");
+    return parsed.body.textContent || "";
   }
 
   function normalizeAuthorization(value) {

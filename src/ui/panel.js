@@ -194,7 +194,15 @@
       quick.className = "template-edit-icon";
       quick.title = "Editar cantidades u observaciones antes de aplicar";
       quick.setAttribute("aria-label", `Editar ${item.nombre} antes de aplicar`);
-      quick.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>';
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("aria-hidden", "true");
+      const body = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      body.setAttribute("d", "M4 20h4l11-11-4-4L4 16v4Z");
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      line.setAttribute("d", "m13.5 6.5 4 4");
+      icon.append(body, line);
+      quick.append(icon);
       quick.dataset.templateQuick = item.id;
       row.append(quick);
       frequent.append(row);
@@ -393,24 +401,48 @@
     wrap.dataset.itemIndex = String(index);
     // Conserva campos tecnicos (descripcionSeleccionModal, etc.) que ya no se muestran.
     wrap.dataset.original = JSON.stringify(item || {});
-    wrap.innerHTML = `
-      <label>Buscar elemento<input data-item-field="buscarElemento" list="sios-elementos-list" placeholder="Escriba código o nombre del elemento..."></label>
-      <div class="template-item-grid">
-        <label>Código<input data-item-field="codigo" type="text" inputmode="numeric"></label>
-        <label>Cantidad<input data-item-field="cantidad" type="number" min="1" step="1"></label>
-      </div>
-      <label>Descripción<input data-item-field="descripcion" type="text"></label>
-      <label>Descripción detallada de prótesis<input data-item-field="descripcionProtesis" type="text" placeholder="-"></label>
-      <div class="template-item-grid">
-        <label>Prioridad<input data-item-field="prioridad" type="text" placeholder="ALTA"></label>
-        <label>Lugar de entrega<input data-item-field="lugarEntrega" type="text"></label>
-      </div>
-      <label>Observación<input data-item-field="observacion" type="text"></label>
-      <div class="template-item-grid">
-        <button type="button" class="template-item-add" data-action="${addAction}">Agregar ítem</button>
-        <button type="button" class="template-item-remove" data-action="template-item-remove"${removable ? "" : " disabled"}>Eliminar ítem</button>
-      </div>
-    `;
+    const field = (labelText, fieldName, attributes = {}) => {
+      const label = document.createElement("label");
+      label.append(document.createTextNode(labelText));
+      const input = document.createElement("input");
+      input.dataset.itemField = fieldName;
+      Object.entries(attributes).forEach(([name, value]) => input.setAttribute(name, value));
+      label.append(input);
+      return label;
+    };
+    const grid = (...children) => {
+      const container = document.createElement("div");
+      container.className = "template-item-grid";
+      container.append(...children);
+      return container;
+    };
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.className = "template-item-add";
+    addButton.dataset.action = addAction;
+    addButton.textContent = "Agregar ítem";
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "template-item-remove";
+    removeButton.dataset.action = "template-item-remove";
+    removeButton.disabled = !removable;
+    removeButton.textContent = "Eliminar ítem";
+
+    wrap.append(
+      field("Buscar elemento", "buscarElemento", { list: "sios-elementos-list", placeholder: "Escriba código o nombre del elemento..." }),
+      grid(
+        field("Código", "codigo", { type: "text", inputmode: "numeric" }),
+        field("Cantidad", "cantidad", { type: "number", min: "1", step: "1" })
+      ),
+      field("Descripción", "descripcion", { type: "text" }),
+      field("Descripción detallada de prótesis", "descripcionProtesis", { type: "text", placeholder: "-" }),
+      grid(
+        field("Prioridad", "prioridad", { type: "text", placeholder: "ALTA" }),
+        field("Lugar de entrega", "lugarEntrega", { type: "text" })
+      ),
+      field("Observación", "observacion", { type: "text" }),
+      grid(addButton, removeButton)
+    );
     wrap.querySelector('[data-item-field="codigo"]').value = item.codigo || "";
     wrap.querySelector('[data-item-field="descripcion"]').value = item.descripcion || "";
     wrap.querySelector('[data-item-field="cantidad"]').value = item.cantidad || 1;

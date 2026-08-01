@@ -5,3 +5,6 @@
 # Archivos temporales de herramientas locales.
 **/__pycache__/
 *.py[cod]
+
+# Paquetes de distribución generados para las tiendas.
+/*.zip

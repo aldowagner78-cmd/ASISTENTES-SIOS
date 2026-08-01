@@ -19,9 +19,12 @@
 
   const style = document.createElement("style");
   style.textContent = css;
-  const wrapper = document.createElement("div");
-  wrapper.innerHTML = html;
-  shadow.append(style, wrapper);
+  const panelDocument = new DOMParser().parseFromString(html, "text/html");
+  const panelFragment = document.createDocumentFragment();
+  while (panelDocument.body.firstChild) {
+    panelFragment.append(panelDocument.body.firstChild);
+  }
+  shadow.append(style, panelFragment);
   document.documentElement.append(host);
 
   await SIOS.inicializarPanel(shadow, host);
