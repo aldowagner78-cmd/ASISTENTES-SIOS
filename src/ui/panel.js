@@ -4,6 +4,7 @@
   const SIOS = window.AsistenteSIOS = window.AsistenteSIOS || {};
   const PENDING_KEY = "asistente-sios-pending-action";
   const PANEL_STATE_KEY = "asistente-sios-panel-state";
+  const CATALOG_STORAGE_KEY = "asistente-sios-codigario";
   const PANEL_STATE_VERSION = 3;
   const PANEL_MIN_WIDTH = 130;
   const PANEL_DEFAULT_WIDTH = 160;
@@ -521,6 +522,44 @@
     URL.revokeObjectURL(url);
   }
 
+  function catalogStorageArea() {
+    if (typeof browser !== "undefined" && browser.storage?.local) return browser.storage.local;
+    return null;
+  }
+
+  function normalizeCatalogEntry(entry) {
+    return {
+      codigo: String(entry?.codigo || "").trim(),
+      descripcion: String(entry?.descripcion || "").trim(),
+      categoria: String(entry?.categoria || "Sin clasificar").trim() || "Sin clasificar"
+    };
+  }
+
+  async function listCatalog() {
+    const storage = catalogStorageArea();
+    if (storage) {
+      const saved = await storage.get(CATALOG_STORAGE_KEY);
+      if (Array.isArray(saved[CATALOG_STORAGE_KEY])) return saved[CATALOG_STORAGE_KEY].map(normalizeCatalogEntry);
+    } else {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CATALOG_STORAGE_KEY) || "null");
+        if (Array.isArray(saved)) return saved.map(normalizeCatalogEntry);
+      } catch { /* Usa el codigario incluido si el respaldo local no es válido. */ }
+    }
+    return (SIOS.CODIGOS_ELEMENTOS || []).map(normalizeCatalogEntry);
+  }
+
+  async function saveCatalog(catalog) {
+    const normalized = catalog.map(normalizeCatalogEntry);
+    const storage = catalogStorageArea();
+    if (storage) {
+      await storage.set({ [CATALOG_STORAGE_KEY]: normalized });
+    } else {
+      localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(normalized));
+    }
+    return normalized;
+  }
+
   async function initPanel(root) {
     let selectedAuthorization = null;
     let templates = await SIOS.plantillasStorage.list();
@@ -534,9 +573,11 @@
     renderDiagnostics(root);
     initPanelMovement(root);
 
-    const elementosCatalog = SIOS.CODIGOS_ELEMENTOS || [];
+    let elementosCatalog = await listCatalog();
     const elementosList = root.querySelector("#sios-elementos-list");
-    if (elementosList && elementosCatalog.length) {
+    const renderCatalogOptions = () => {
+      if (!elementosList) return;
+      elementosList.textContent = "";
       const frag = document.createDocumentFragment();
       for (const el of elementosCatalog) {
         const option = document.createElement("option");
@@ -544,7 +585,38 @@
         frag.append(option);
       }
       elementosList.append(frag);
-    }
+    };
+    const catalogDialog = root.querySelector("[data-catalog-dialog]");
+    const catalogSearch = root.querySelector("[data-catalog-search]");
+    const catalogResults = root.querySelector("[data-catalog-results]");
+    const catalogCode = root.querySelector("[data-catalog-code]");
+    const catalogDescription = root.querySelector("[data-catalog-description]");
+    const catalogCategory = root.querySelector("[data-catalog-category]");
+    const clearCatalogForm = () => {
+      catalogCode.value = "";
+      catalogDescription.value = "";
+      catalogCategory.value = "";
+    };
+    const renderCatalogResults = () => {
+      if (!catalogResults) return;
+      const query = normalizeSearch(catalogSearch?.value || "");
+      const visible = elementosCatalog.filter((item) => !query || normalizeSearch(`${item.codigo} ${item.descripcion} ${item.categoria}`).includes(query)).slice(0, 100);
+      catalogResults.textContent = "";
+      for (const item of visible) {
+        const option = document.createElement("option");
+        option.value = item.codigo;
+        option.textContent = `${item.codigo} — ${item.descripcion}`;
+        catalogResults.append(option);
+      }
+    };
+    const selectCatalogEntry = (code) => {
+      const item = elementosCatalog.find((entry) => entry.codigo === code);
+      if (!item) return;
+      catalogCode.value = item.codigo;
+      catalogDescription.value = item.descripcion;
+      catalogCategory.value = item.categoria;
+    };
+    renderCatalogOptions();
 
     root.addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
@@ -561,6 +633,10 @@
 
     root.addEventListener("input", (event) => {
       const target = event.target;
+      if (target === catalogSearch) {
+        renderCatalogResults();
+        return;
+      }
       if (!target?.hasAttribute?.("data-template-search")) return;
       const clear = root.querySelector('[data-action="limpiar-buscador-plantillas"]');
       if (clear) clear.hidden = !target.value;
@@ -569,6 +645,10 @@
 
     root.addEventListener("change", (event) => {
       const target = event.target;
+      if (target === catalogResults) {
+        selectCatalogEntry(target.value);
+        return;
+      }
       if (!target?.dataset) return;
       const row = target.closest?.(".template-item");
       if (!row) return;
@@ -662,6 +742,60 @@
       try {
         if (target.dataset.action === "abrir-panel") {
           openPanel(root);
+          return;
+        }
+
+        if (target.dataset.action === "abrir-codigario") {
+          clearCatalogForm();
+          catalogSearch.value = "";
+          renderCatalogResults();
+          catalogDialog.showModal();
+          return;
+        }
+
+        if (target.dataset.action === "catalog-new") {
+          clearCatalogForm();
+          catalogResults.selectedIndex = -1;
+          return;
+        }
+
+        if (target.dataset.action === "catalog-save") {
+          const entry = normalizeCatalogEntry({
+            codigo: catalogCode.value,
+            descripcion: catalogDescription.value,
+            categoria: catalogCategory.value
+          });
+          if (!/^\d{6}$/.test(entry.codigo)) throw new Error("El código debe tener exactamente 6 números.");
+          if (!entry.descripcion) throw new Error("La descripción es obligatoria.");
+          const index = elementosCatalog.findIndex((item) => item.codigo === entry.codigo);
+          if (index >= 0) elementosCatalog[index] = entry;
+          else elementosCatalog.push(entry);
+          elementosCatalog.sort((a, b) => a.codigo.localeCompare(b.codigo));
+          elementosCatalog = await saveCatalog(elementosCatalog);
+          SIOS.CODIGOS_ELEMENTOS = elementosCatalog;
+          renderCatalogOptions();
+          renderCatalogResults();
+          selectCatalogEntry(entry.codigo);
+          textStatus(root, `Codigario guardado: ${entry.codigo}.`);
+          return;
+        }
+
+        if (target.dataset.action === "catalog-delete") {
+          const code = catalogCode.value.trim();
+          const entry = elementosCatalog.find((item) => item.codigo === code);
+          if (!entry) throw new Error("Seleccione un código existente para eliminar.");
+          if (!window.confirm(`¿Eliminar ${entry.codigo} — ${entry.descripcion} del codigario?`)) return;
+          elementosCatalog = await saveCatalog(elementosCatalog.filter((item) => item.codigo !== code));
+          SIOS.CODIGOS_ELEMENTOS = elementosCatalog;
+          renderCatalogOptions();
+          renderCatalogResults();
+          clearCatalogForm();
+          textStatus(root, `Código eliminado: ${entry.codigo}.`);
+          return;
+        }
+
+        if (target.dataset.action === "catalog-close") {
+          catalogDialog.close();
           return;
         }
 

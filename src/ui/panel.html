@@ -54,6 +54,12 @@
         </div>
         <input data-import-file type="file" accept="application/json,.json" hidden>
       </details>
+      <details class="template-admin">
+        <summary>Codigario</summary>
+        <div class="template-actions">
+          <button type="button" data-action="abrir-codigario">Modificar codigario</button>
+        </div>
+      </details>
     </section>
 
     <section class="sios-step confirm-step disabled" data-step="4">
@@ -73,6 +79,23 @@
           <button type="button" data-action="quick-save-new" data-quick-save>Guardar como nueva</button>
           <button type="button" class="template-delete-button" data-action="quick-delete" hidden>Eliminar plantilla</button>
           <button type="button" data-action="quick-cancel">Cancelar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="quick-apply catalog-editor" data-catalog-dialog>
+      <form method="dialog">
+        <h2>Modificar codigario</h2>
+        <label>Buscar<input type="search" data-catalog-search placeholder="Código o descripción"></label>
+        <select data-catalog-results size="7" aria-label="Resultados del codigario"></select>
+        <label>Código<input data-catalog-code type="text" inputmode="numeric" maxlength="6"></label>
+        <label>Descripción<input data-catalog-description type="text"></label>
+        <label>Categoría<input data-catalog-category type="text"></label>
+        <div class="template-form-actions">
+          <button type="button" data-action="catalog-new">Nuevo</button>
+          <button type="button" data-action="catalog-save">Guardar</button>
+          <button type="button" class="template-delete-button" data-action="catalog-delete">Eliminar</button>
+          <button type="button" data-action="catalog-close">Cerrar</button>
         </div>
       </form>
     </dialog>
