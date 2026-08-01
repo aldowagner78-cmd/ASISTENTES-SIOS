@@ -32,7 +32,8 @@
   async function listTemplates() {
     let templates = await readRaw();
     if (!Array.isArray(templates)) {
-      templates = SIOS.plantillasClone(SIOS.PLANTILLAS_PREDETERMINADAS || []);
+      // Un perfil nuevo empieza sin plantillas; cada usuario crea o importa las propias.
+      templates = [];
       await writeRaw(templates);
     }
     const normalized = templates.map(SIOS.normalizarPlantilla);
