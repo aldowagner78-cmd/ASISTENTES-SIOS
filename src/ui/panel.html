@@ -1,0 +1,96 @@
+<button type="button" class="sios-launcher assistant-compras" data-action="abrir-panel" data-assistant="compras" title="Abrir asistente de Compras" aria-label="Abrir asistente de Compras">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H7.2M10 20a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>
+</button>
+<datalist id="sios-elementos-list"></datalist>
+
+<aside class="sios-panel" data-panel hidden aria-label="Asistente SIOS Compra">
+  <header class="sios-header">
+    <h1>ASISTENTE SIOS COMPRA</h1>
+    <button type="button" class="icon-btn close-btn" data-action="cerrar-panel" title="Cerrar asistente" aria-label="Cerrar asistente">×</button>
+  </header>
+
+  <div class="sios-panel-body" data-panel-body>
+    <section class="sios-step" data-step="1">
+      <h2><span>1</span>Afiliado</h2>
+      <label for="sios-dni">DNI</label>
+      <div class="input-row">
+        <input id="sios-dni" data-dni type="text" autocomplete="off" maxlength="10" placeholder="DNI">
+        <button type="button" class="action-icon" data-action="buscar-afiliado" title="Buscar afiliado" aria-label="Buscar afiliado">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="sios-step disabled" data-step="2">
+      <h2><span>2</span>Autorización</h2>
+      <label for="sios-aut">Últimos 3 dígitos</label>
+      <div class="input-row">
+        <input id="sios-aut" data-autorizacion type="text" inputmode="numeric" autocomplete="off" maxlength="3" disabled>
+        <button type="button" class="action-icon" data-action="buscar-autorizacion" title="Verificar autorización" aria-label="Verificar autorización" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>
+        </button>
+      </div>
+      <p class="step-result" data-resultado-autorizacion hidden></p>
+      <div class="matches" data-matches hidden></div>
+    </section>
+
+    <section class="sios-step disabled" data-step="3">
+      <h2><span>3</span>Elemento</h2>
+      <div class="template-search-wrap">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <input type="search" data-template-search placeholder="Buscar elemento" autocomplete="off" aria-label="Buscar plantilla por nombre, código, descripción o categoría">
+        <button type="button" class="clear-search" data-action="limpiar-buscador-plantillas" title="Limpiar búsqueda" aria-label="Limpiar búsqueda" hidden>×</button>
+      </div>
+      <div class="plantillas-scroll">
+        <div class="plantillas" data-plantillas></div>
+        <p class="empty-templates" data-empty-templates hidden>Sin resultados</p>
+      </div>
+      <details class="template-admin">
+        <summary>Administrar plantillas</summary>
+        <div class="template-actions">
+          <button type="button" data-action="plantilla-nueva">Crear</button>
+          <button type="button" data-action="plantillas-exportar">Exportar</button>
+          <button type="button" data-action="plantillas-importar">Importar</button>
+        </div>
+        <input data-import-file type="file" accept="application/json,.json" hidden>
+      </details>
+    </section>
+
+    <section class="sios-step confirm-step disabled" data-step="4">
+      <h2><span>4</span>Confirmar</h2>
+      <p class="step-help confirm-help">Solo después de verificar la carga.</p>
+      <button type="button" class="confirm-button" data-action="confirmar-imprimir" disabled>Confirmar e imprimir</button>
+    </section>
+
+    <dialog class="quick-apply" data-quick-dialog>
+      <form method="dialog" data-quick-form>
+        <h2 data-quick-title>Ajustar y aplicar</h2>
+        <p class="step-help" data-quick-help>Cambios solo para esta carga, salvo que guarde una nueva plantilla.</p>
+        <input type="hidden" data-quick-template-id>
+        <div class="template-items" data-quick-items></div>
+        <div class="template-form-actions">
+          <button type="button" data-action="quick-apply">Aplicar ahora</button>
+          <button type="button" data-action="quick-save-new" data-quick-save>Guardar como nueva</button>
+          <button type="button" class="template-delete-button" data-action="quick-delete" hidden>Eliminar plantilla</button>
+          <button type="button" data-action="quick-cancel">Cancelar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <details class="sios-status" data-status-details>
+      <summary><span data-status-summary>Estado — Esperando</span></summary>
+      <div class="status-box" data-status>Esperando...</div>
+    </details>
+
+    <details class="diagnostico">
+      <summary>Diagnóstico</summary>
+      <div class="diagnostico-actions">
+        <button type="button" data-action="diagnostico">Actualizar</button>
+        <button type="button" data-action="copiar-diagnostico">Copiar</button>
+      </div>
+      <pre data-diagnostico></pre>
+    </details>
+  </div>
+
+  <div class="sios-resize-handle" data-resize-handle title="Cambiar ancho del panel" aria-hidden="true"></div>
+</aside>

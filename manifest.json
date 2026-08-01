@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Asistente SIOS Compra",
+  "version": "0.10.1",
+  "description": "Asistente guiado para automatizar cargas de compra dentro de SIOS de IAPOS.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*/iapos-app-srvt/*",
+    "*://*/iapos-www/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*/iapos-app-srvt/*",
+        "*://*/iapos-www/*"
+      ],
+      "js": [
+        "src/content/detectar-pantalla.js",
+        "src/content/buscar-afiliado.js",
+        "src/content/buscar-autorizacion.js",
+        "src/plantillas/campos-sios.js",
+        "src/plantillas/codigos-elementos.js",
+        "src/plantillas/plantillas-default.js",
+        "src/plantillas/plantillas-validacion.js",
+        "src/plantillas/plantillas-storage.js",
+        "src/plantillas/plantillas-ejecucion.js",
+        "src/elementos/lente-intraocular-derecho.js",
+        "src/elementos/elementos.js",
+        "src/ui/panel.js",
+        "src/content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/ui/panel.html",
+        "src/ui/panel.css"
+      ],
+      "matches": [
+        "*://*/iapos-app-srvt/*",
+        "*://*/iapos-www/*"
+      ]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "asistente-sios@local"
+    }
+  }
+}

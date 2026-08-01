@@ -1,0 +1,986 @@
+(function () {
+  "use strict";
+
+  const SIOS = window.AsistenteSIOS = window.AsistenteSIOS || {};
+  const PENDING_KEY = "asistente-sios-pending-action";
+  const PANEL_STATE_KEY = "asistente-sios-panel-state";
+  const PANEL_STATE_VERSION = 3;
+  const PANEL_MIN_WIDTH = 130;
+  const PANEL_DEFAULT_WIDTH = 160;
+  const PANEL_PREVIOUS_DEFAULT_WIDTH = 140;
+  const PANEL_MIN_HEIGHT = 320;
+  const PANEL_MARGIN = 0;
+  const ASSISTANT_RAIL_WIDTH = 0;
+  let currentTemplates = [];
+  const diagnosticErrors = [];
+
+  function textStatus(root, message) {
+    const status = root.querySelector("[data-status]");
+    if (status) status.textContent = message;
+    const summary = root.querySelector("[data-status-summary]");
+    if (summary) {
+      const normalized = String(message || "").toLowerCase();
+      const state = normalized.includes("error") || normalized.includes("no se pudo") ? "Error" :
+        normalized.includes("complet") || normalized.includes("guardad") || normalized.includes("seleccionada") ? "Listo" : "Esperando";
+      summary.textContent = `Estado — ${state}`;
+    }
+  }
+
+  function setAuthResult(root, message, kind) {
+    const box = root.querySelector("[data-resultado-autorizacion]");
+    if (!box) return;
+    box.hidden = !message;
+    box.textContent = message || "";
+    box.classList.toggle("ok", kind === "ok");
+    box.classList.toggle("error", kind === "error");
+  }
+
+  function rememberError(error) {
+    diagnosticErrors.push({
+      message: error?.message || String(error),
+      at: new Date().toISOString()
+    });
+    if (diagnosticErrors.length > 8) {
+      diagnosticErrors.shift();
+    }
+  }
+
+  function setStepEnabled(root, step, enabled) {
+    const section = root.querySelector(`[data-step="${step}"]`);
+    if (String(step) === "3") {
+      section?.classList.remove("disabled");
+      section?.classList.toggle("templates-disabled", !enabled);
+      section?.querySelectorAll("[data-template-apply], [data-template-quick], [data-elemento-id]").forEach((control) => {
+        control.disabled = !enabled;
+      });
+      return;
+    }
+    section?.classList.toggle("disabled", !enabled);
+    section?.querySelectorAll("input, button").forEach((control) => {
+      control.disabled = !enabled;
+    });
+  }
+
+  function applySiosDock(panel) {
+    const width = Math.round(panel.getBoundingClientRect().width || PANEL_DEFAULT_WIDTH);
+    const offset = ASSISTANT_RAIL_WIDTH + width;
+    const html = document.documentElement;
+    const body = document.body;
+    if (!html.dataset.siosAssistantDocked) {
+      html.dataset.siosAssistantDocked = "1";
+      html.dataset.siosAssistantOriginalMarginLeft = html.style.marginLeft || "";
+      html.dataset.siosAssistantOriginalWidth = html.style.width || "";
+      if (body) {
+        body.dataset.siosAssistantOriginalMarginLeft = body.style.marginLeft || "";
+        body.dataset.siosAssistantOriginalWidth = body.style.width || "";
+      }
+    }
+    html.style.marginLeft = `${offset}px`;
+    html.style.width = `calc(100% - ${offset}px)`;
+    if (body) {
+      body.style.marginLeft = "0";
+      body.style.width = "auto";
+    }
+  }
+
+  function removeSiosDock() {
+    const html = document.documentElement;
+    const body = document.body;
+    if (!html.dataset.siosAssistantDocked) return;
+    html.style.marginLeft = html.dataset.siosAssistantOriginalMarginLeft || "";
+    html.style.width = html.dataset.siosAssistantOriginalWidth || "";
+    if (body) {
+      body.style.marginLeft = body.dataset.siosAssistantOriginalMarginLeft || "";
+      body.style.width = body.dataset.siosAssistantOriginalWidth || "";
+      delete body.dataset.siosAssistantOriginalMarginLeft;
+      delete body.dataset.siosAssistantOriginalWidth;
+    }
+    delete html.dataset.siosAssistantDocked;
+    delete html.dataset.siosAssistantOriginalMarginLeft;
+    delete html.dataset.siosAssistantOriginalWidth;
+  }
+
+  function openPanel(root) {
+    const panel = root.querySelector("[data-panel]");
+    panel.hidden = false;
+    restorePanelState(panel);
+    root.querySelector(".sios-launcher").hidden = true;
+    applySiosDock(panel);
+  }
+
+  function closePanel(root) {
+    root.querySelector("[data-panel]").hidden = true;
+    root.querySelector(".sios-launcher").hidden = false;
+    removeSiosDock();
+  }
+
+  function ensureConfirmationVisible(root) {
+    const body = root.querySelector("[data-panel-body]");
+    const step = root.querySelector('[data-step="4"]');
+    if (!body || !step) return;
+
+    const bodyRect = body.getBoundingClientRect();
+    const stepRect = step.getBoundingClientRect();
+    if (stepRect.top < bodyRect.top) {
+      body.scrollTop += stepRect.top - bodyRect.top;
+    } else if (stepRect.bottom > bodyRect.bottom) {
+      body.scrollTop += stepRect.bottom - bodyRect.bottom;
+    }
+  }
+
+  function renderDiagnostics(root) {
+    const diagnostics = SIOS.obtenerDiagnostico();
+    const screen = diagnostics.screen || {};
+    const safe = {
+      screen: {
+        type: screen.type,
+        label: screen.label,
+        title: screen.title,
+        formActionPath: String(screen.formAction || "").split("?")[0]
+      },
+      authorizationLookup: diagnostics.authorizationLookup,
+      templateExecution: SIOS.obtenerDiagnosticoPlantilla?.() || null,
+      errors: diagnosticErrors,
+      controls: diagnostics.controls.map((control) => ({
+        id: control.id,
+        found: control.found,
+        tag: control.tag,
+        type: control.type,
+        visible: control.visible,
+        options: control.options
+      }))
+    };
+    root.querySelector("[data-diagnostico]").textContent = JSON.stringify(safe, null, 2);
+  }
+
+  function normalizeSearch(value) {
+    return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  }
+
+  function templateMatches(template, query) {
+    if (!query) return true;
+    const haystack = [
+      template.nombre,
+      template.categoria,
+      ...(template.items || []).flatMap((item) => [item.codigo, item.descripcion, item.observacion])
+    ].map(normalizeSearch).join(" ");
+    return haystack.includes(query);
+  }
+
+  function renderTemplates(root, templates, query = "") {
+    currentTemplates = templates;
+    const frequent = root.querySelector("[data-plantillas]");
+    const list = root.querySelector("[data-template-list]");
+    const empty = root.querySelector("[data-empty-templates]");
+    frequent.textContent = "";
+    if (list) list.textContent = "";
+    const normalizedQuery = normalizeSearch(query);
+    const visible = templates.filter((template) => template.activo && templateMatches(template, normalizedQuery));
+
+    for (const item of visible.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"))) {
+      const row = document.createElement("div");
+      row.className = "template-card";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = item.nombre;
+      button.title = `Aplicar ${item.nombre}`;
+      button.dataset.templateApply = item.id;
+      row.append(button);
+
+      const quick = document.createElement("button");
+      quick.type = "button";
+      quick.className = "template-edit-icon";
+      quick.title = "Editar cantidades u observaciones antes de aplicar";
+      quick.setAttribute("aria-label", `Editar ${item.nombre} antes de aplicar`);
+      quick.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>';
+      quick.dataset.templateQuick = item.id;
+      row.append(quick);
+      frequent.append(row);
+    }
+    if (empty) empty.hidden = visible.length > 0;
+
+    for (const item of templates) {
+      if (!list) break;
+      const row = document.createElement("div");
+      row.className = "template-list-row";
+      const label = document.createElement("span");
+      label.textContent = `${item.nombre} · ${item.activo ? "activa" : "inactiva"}`;
+      row.append(label);
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "secondary";
+      edit.textContent = "Editar";
+      edit.dataset.templateEdit = item.id;
+      row.append(edit);
+      list.append(row);
+    }
+
+    const step = root.querySelector('[data-step="3"]');
+    const enabled = !step?.classList.contains("templates-disabled");
+    step?.querySelectorAll("[data-template-apply], [data-template-quick]").forEach((control) => {
+      control.disabled = !enabled;
+    });
+  }
+
+  async function copyDiagnostics(root) {
+    renderDiagnostics(root);
+    const text = root.querySelector("[data-diagnostico]").textContent;
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.documentElement.append(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+
+  function formatMatch(match) {
+    const parts = [match.displayNumber || match.authorizationNumber];
+    parts.push(match.medStatus || "Estado MED no disponible");
+    if (match.date) parts.push(`Fecha: ${match.date}`);
+    return parts.join(" · ");
+  }
+
+  function renderMatches(root, matches, onSelect) {
+    const box = root.querySelector("[data-matches]");
+    box.textContent = "";
+    box.hidden = false;
+
+    for (const match of matches) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "secondary";
+      button.dataset.selectRowId = match.rowId;
+      button.textContent = formatMatch(match);
+      button.addEventListener("click", () => onSelect(match));
+      box.append(button);
+    }
+  }
+
+  function clearMatches(root) {
+    const box = root.querySelector("[data-matches]");
+    box.textContent = "";
+    box.hidden = true;
+  }
+
+  function savePendingAction(action) {
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ ...action, requestedAt: Date.now() }));
+  }
+
+  function peekPendingAction() {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch {
+      sessionStorage.removeItem(PENDING_KEY);
+      return null;
+    }
+  }
+
+  function clearPendingAction() {
+    sessionStorage.removeItem(PENDING_KEY);
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  async function waitForPendingDetail(pending, timeoutMs = 12000) {
+    const start = Date.now();
+    while (Date.now() - start <= timeoutMs) {
+      if (SIOS.detallePlantillaDisponible?.(pending.expectedAuthorization)) return true;
+      await wait(150);
+    }
+    return false;
+  }
+
+  function getPanelState() {
+    try {
+      return JSON.parse(sessionStorage.getItem(PANEL_STATE_KEY) || "{}");
+    } catch (error) {
+      sessionStorage.removeItem(PANEL_STATE_KEY);
+      return {};
+    }
+  }
+
+  function savePanelState(panel) {
+    const rect = panel.getBoundingClientRect();
+    sessionStorage.setItem(PANEL_STATE_KEY, JSON.stringify({
+      version: PANEL_STATE_VERSION,
+      width: Math.round(rect.width),
+      scrollTop: Math.round(panel.querySelector("[data-panel-body]")?.scrollTop || 0)
+    }));
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function getPanelLimits() {
+    return {
+      maxWidth: Math.max(PANEL_MIN_WIDTH, window.innerWidth - ASSISTANT_RAIL_WIDTH - PANEL_MARGIN * 2),
+      maxHeight: Math.max(PANEL_MIN_HEIGHT, window.innerHeight - PANEL_MARGIN * 2)
+    };
+  }
+
+  function applyPanelGeometry(panel, geometry, persist = true) {
+    const limits = getPanelLimits();
+    const width = clamp(Number(geometry.width || panel.offsetWidth || PANEL_DEFAULT_WIDTH), PANEL_MIN_WIDTH, limits.maxWidth);
+    panel.style.width = `${width}px`;
+    panel.style.height = "100vh";
+    panel.style.left = `${ASSISTANT_RAIL_WIDTH}px`;
+    panel.style.top = "0";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    if (!panel.hidden) applySiosDock(panel);
+    if (persist) savePanelState(panel);
+  }
+
+  function restorePanelState(panel) {
+    const state = getPanelState();
+    const storedWidth = Number(state.width);
+    const width = state.version === PANEL_STATE_VERSION ? storedWidth :
+      state.version === 2 ? (storedWidth === PANEL_PREVIOUS_DEFAULT_WIDTH ? PANEL_DEFAULT_WIDTH : storedWidth) :
+        storedWidth > PANEL_PREVIOUS_DEFAULT_WIDTH ? PANEL_DEFAULT_WIDTH : storedWidth;
+    applyPanelGeometry(panel, { width: width || PANEL_DEFAULT_WIDTH }, false);
+    const body = panel.querySelector("[data-panel-body]");
+    if (body && Number.isFinite(Number(state.scrollTop))) body.scrollTop = Number(state.scrollTop);
+  }
+
+  function initPanelMovement(root) {
+    const panel = root.querySelector("[data-panel]");
+    const resizeHandle = root.querySelector("[data-resize-handle]");
+    const body = root.querySelector("[data-panel-body]");
+    let active = null;
+
+    const finishInteraction = () => {
+      if (!active) return;
+      savePanelState(panel);
+      active = null;
+      document.removeEventListener("pointermove", moveInteraction);
+      document.removeEventListener("pointerup", finishInteraction);
+      document.removeEventListener("pointercancel", finishInteraction);
+    };
+    const moveInteraction = (event) => {
+      if (!active) return;
+      event.preventDefault();
+      applyPanelGeometry(panel, { width: active.startWidth + event.clientX - active.startX }, false);
+    };
+    resizeHandle.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      active = { startX: event.clientX, startWidth: panel.getBoundingClientRect().width };
+      event.preventDefault();
+      document.addEventListener("pointermove", moveInteraction);
+      document.addEventListener("pointerup", finishInteraction);
+      document.addEventListener("pointercancel", finishInteraction);
+    });
+    body?.addEventListener("scroll", () => savePanelState(panel), { passive: true });
+    window.addEventListener("resize", () => {
+      if (!panel.hidden) applyPanelGeometry(panel, getPanelState(), true);
+    });
+  }
+
+  function createTemplateItemEditor(item, index, removable = true, addAction = "template-item-add") {
+    const wrap = document.createElement("div");
+    wrap.className = "template-item";
+    wrap.dataset.itemIndex = String(index);
+    // Conserva campos tecnicos (descripcionSeleccionModal, etc.) que ya no se muestran.
+    wrap.dataset.original = JSON.stringify(item || {});
+    wrap.innerHTML = `
+      <label>Buscar elemento<input data-item-field="buscarElemento" list="sios-elementos-list" placeholder="Escriba código o nombre del elemento..."></label>
+      <div class="template-item-grid">
+        <label>Código<input data-item-field="codigo" type="text" inputmode="numeric"></label>
+        <label>Cantidad<input data-item-field="cantidad" type="number" min="1" step="1"></label>
+      </div>
+      <label>Descripción<input data-item-field="descripcion" type="text"></label>
+      <label>Descripción detallada de prótesis<input data-item-field="descripcionProtesis" type="text" placeholder="-"></label>
+      <div class="template-item-grid">
+        <label>Prioridad<input data-item-field="prioridad" type="text" placeholder="ALTA"></label>
+        <label>Lugar de entrega<input data-item-field="lugarEntrega" type="text"></label>
+      </div>
+      <label>Observación<input data-item-field="observacion" type="text"></label>
+      <div class="template-item-grid">
+        <button type="button" class="template-item-add" data-action="${addAction}">Agregar ítem</button>
+        <button type="button" class="template-item-remove" data-action="template-item-remove"${removable ? "" : " disabled"}>Eliminar ítem</button>
+      </div>
+    `;
+    wrap.querySelector('[data-item-field="codigo"]').value = item.codigo || "";
+    wrap.querySelector('[data-item-field="descripcion"]').value = item.descripcion || "";
+    wrap.querySelector('[data-item-field="cantidad"]').value = item.cantidad || 1;
+    wrap.querySelector('[data-item-field="observacion"]').value = item.observacion || "";
+    wrap.querySelector('[data-item-field="descripcionProtesis"]').value = item.descripcionProtesis || "";
+    wrap.querySelector('[data-item-field="prioridad"]').value = item.prioridad || "";
+    wrap.querySelector('[data-item-field="lugarEntrega"]').value = item.lugarEntrega || "";
+    return wrap;
+  }
+
+  function collectItemsFrom(root, containerSelector) {
+    return Array.from(root.querySelectorAll(`${containerSelector} .template-item`)).map((row, index) => {
+      let original = {};
+      try { original = JSON.parse(row.dataset.original || "{}"); } catch { original = {}; }
+      const codigo = row.querySelector('[data-item-field="codigo"]').value.trim();
+      const descripcion = row.querySelector('[data-item-field="descripcion"]').value.trim();
+      const keepModal = original.codigo === codigo && original.descripcionSeleccionModal;
+      return {
+        ...original,
+        codigo,
+        descripcion,
+        cantidad: Number(row.querySelector('[data-item-field="cantidad"]').value),
+        observacion: row.querySelector('[data-item-field="observacion"]').value.trim(),
+        descripcionProtesis: row.querySelector('[data-item-field="descripcionProtesis"]').value.trim(),
+        prioridad: row.querySelector('[data-item-field="prioridad"]').value.trim(),
+        lugarEntrega: row.querySelector('[data-item-field="lugarEntrega"]').value.trim(),
+        descripcionSeleccionModal: keepModal ? original.descripcionSeleccionModal : descripcion,
+        orden: index + 1
+      };
+    });
+  }
+
+  function fillTemplateForm(root, template) {
+    const form = root.querySelector("[data-template-form]");
+    form.hidden = false;
+    form.dataset.active = template.activo !== false ? "true" : "false";
+    // Conserva campos de plantilla que ya no se muestran (observacionGeneral, lateralidad, etc.).
+    form.dataset.original = JSON.stringify(template || {});
+    root.querySelector("[data-template-id]").value = template.id || "";
+    root.querySelector("[data-template-nombre]").value = template.nombre || "";
+    root.querySelector("[data-template-categoria]").value = template.categoria || "";
+    const items = root.querySelector("[data-template-items]");
+    items.textContent = "";
+    (template.items?.length ? template.items : [{ cantidad: 1, orden: 1 }])
+      .forEach((item, index) => items.append(createTemplateItemEditor(item, index)));
+    const body = root.querySelector("[data-panel-body]");
+    if (body) {
+      const bodyRect = body.getBoundingClientRect();
+      const formRect = form.getBoundingClientRect();
+      if (formRect.top < bodyRect.top) {
+        body.scrollTop += formRect.top - bodyRect.top;
+      } else if (formRect.bottom > bodyRect.bottom) {
+        body.scrollTop += formRect.bottom - bodyRect.bottom;
+      }
+    }
+  }
+
+  function collectTemplateFromForm(root, options = {}) {
+    const form = root.querySelector("[data-template-form]");
+    const id = root.querySelector("[data-template-id]").value.trim();
+    let original = {};
+    try { original = JSON.parse(form.dataset.original || "{}"); } catch { original = {}; }
+
+    return {
+      ...original,
+      id: options.newId ? "" : id,
+      nombre: root.querySelector("[data-template-nombre]").value.trim(),
+      categoria: root.querySelector("[data-template-categoria]").value.trim(),
+      activo: options.active ?? form.dataset.active !== "false",
+      items: collectItemsFrom(root, "[data-template-items]")
+    };
+  }
+
+  function fillQuickDialog(root, template, mode = "apply") {
+    const dialog = root.querySelector("[data-quick-dialog]");
+    const creating = mode === "create";
+    dialog.dataset.mode = mode;
+    dialog.dataset.template = JSON.stringify(template);
+    root.querySelector("[data-quick-template-id]").value = template.id;
+    root.querySelector("[data-quick-title]").textContent = creating ? "Nueva plantilla" : "Ajustar y aplicar";
+    root.querySelector("[data-quick-help]").textContent = creating ?
+      "Configure los ítems y guarde la nueva plantilla." :
+      "Cambios solo para esta carga, salvo que guarde una nueva plantilla.";
+    root.querySelector('[data-action="quick-apply"]').hidden = creating;
+    root.querySelector("[data-quick-save]").textContent = creating ? "Guardar plantilla" : "Guardar como nueva";
+    root.querySelector('[data-action="quick-delete"]').hidden = creating || !template.id;
+    const items = root.querySelector("[data-quick-items]");
+    items.textContent = "";
+    template.items.forEach((item, index) => items.append(createTemplateItemEditor(item, index, false, "quick-item-add")));
+    dialog.showModal();
+  }
+
+  function collectQuickTemplate(root) {
+    const dialog = root.querySelector("[data-quick-dialog]");
+    const base = JSON.parse(dialog.dataset.template || "{}");
+    base.items = collectItemsFrom(root, "[data-quick-items]");
+    return base;
+  }
+
+  function downloadJson(filename, value) {
+    const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.documentElement.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function initPanel(root) {
+    let selectedAuthorization = null;
+    let templates = await SIOS.plantillasStorage.list();
+    const screen = SIOS.detectarPantalla();
+
+    // Siempre oculto al cargar: solo queda el botón lateral.
+    closePanel(root);
+    setStepEnabled(root, 2, false);
+    setStepEnabled(root, 3, false);
+    renderTemplates(root, templates);
+    renderDiagnostics(root);
+    initPanelMovement(root);
+
+    const elementosCatalog = SIOS.CODIGOS_ELEMENTOS || [];
+    const elementosList = root.querySelector("#sios-elementos-list");
+    if (elementosList && elementosCatalog.length) {
+      const frag = document.createDocumentFragment();
+      for (const el of elementosCatalog) {
+        const option = document.createElement("option");
+        option.value = `${el.codigo} — ${el.descripcion}`;
+        frag.append(option);
+      }
+      elementosList.append(frag);
+    }
+
+    root.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      const target = event.target;
+      if (!target) return;
+      if (target.hasAttribute?.("data-dni")) {
+        event.preventDefault();
+        root.querySelector('[data-action="buscar-afiliado"]')?.click();
+      } else if (target.hasAttribute?.("data-autorizacion")) {
+        event.preventDefault();
+        root.querySelector('[data-action="buscar-autorizacion"]')?.click();
+      }
+    });
+
+    root.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!target?.hasAttribute?.("data-template-search")) return;
+      const clear = root.querySelector('[data-action="limpiar-buscador-plantillas"]');
+      if (clear) clear.hidden = !target.value;
+      renderTemplates(root, currentTemplates, target.value);
+    });
+
+    root.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!target?.dataset) return;
+      const row = target.closest?.(".template-item");
+      if (!row) return;
+
+      if (target.dataset.itemField === "buscarElemento") {
+        const code = target.value.match(/^(\d{6})/)?.[1];
+        const found = code && elementosCatalog.find((el) => el.codigo === code);
+        if (found) {
+          row.querySelector('[data-item-field="codigo"]').value = found.codigo;
+          row.querySelector('[data-item-field="descripcion"]').value = found.descripcion;
+        }
+        return;
+      }
+
+      if (target.dataset.itemField === "codigo") {
+        const code = target.value.trim();
+        const found = /^\d{6}$/.test(code) && elementosCatalog.find((el) => el.codigo === code);
+        if (found) {
+          const desc = row.querySelector('[data-item-field="descripcion"]');
+          if (!desc.value.trim()) desc.value = found.descripcion;
+        }
+      }
+    });
+
+    const refreshTemplates = async () => {
+      templates = await SIOS.plantillasStorage.list();
+      renderTemplates(root, templates, root.querySelector("[data-template-search]")?.value || "");
+    };
+
+    const getTemplate = (id) => {
+      const template = templates.find((item) => item.id === id);
+      if (!template) throw new Error(`Plantilla no encontrada: ${id}`);
+      return SIOS.plantillasClone(template);
+    };
+
+    const selectAuthorization = (match) => {
+      selectedAuthorization = match;
+      clearMatches(root);
+      setStepEnabled(root, 3, true);
+      setAuthResult(root, `✓ ${match.displayNumber || match.authorizationNumber} · ${match.medStatus || "Estado MED no disponible"}`, "ok");
+      textStatus(root, `Autorización seleccionada: ${match.displayNumber || match.authorizationNumber}.\n${match.medStatus || "Estado MED no disponible"}\nTodavía no fue abierta. Elija el elemento para continuar.`);
+    };
+
+    const runPendingDniSearch = async () => {
+      const pending = SIOS.consumirDniPendiente?.();
+      if (!pending?.dni) return;
+
+      openPanel(root);
+      root.querySelector("[data-dni]").value = pending.dni;
+      selectedAuthorization = null;
+      setStepEnabled(root, 3, false);
+      clearMatches(root);
+      textStatus(root, "Buscando afiliado...");
+      const result = await SIOS.ejecutarBusquedaAfiliado(pending.dni);
+      textStatus(root, result.message);
+      setStepEnabled(root, 2, true);
+      renderDiagnostics(root);
+      window.setTimeout(() => root.querySelector("[data-autorizacion]")?.focus(), 0);
+    };
+
+    const startTemplateApplication = (template) => {
+      if (!selectedAuthorization) {
+        throw new Error("Primero debe verificar y seleccionar una autorización.");
+      }
+
+      const validation = SIOS.validarPlantilla(template);
+      if (!validation.ok) throw new Error(validation.errors.join(" "));
+      const primerLapizListado = SIOS.obtenerControlAperturaAutorizacion?.(selectedAuthorization.rowId) ||
+        `vMODIFICAR_${selectedAuthorization.rowId}`;
+
+      savePendingAction({
+        type: "template",
+        rowId: selectedAuthorization.rowId,
+        template: validation.template,
+        expectedAuthorization: {
+          rowId: selectedAuthorization.rowId,
+          authorizationNumber: selectedAuthorization.displayNumber || selectedAuthorization.authorizationNumber,
+          primerLapizListado,
+          clicksPrimerLapizListado: 1
+        }
+      });
+      textStatus(root, `Abriendo ${selectedAuthorization.displayNumber || selectedAuthorization.authorizationNumber} para aplicar ${validation.template.nombre}...`);
+      closePanel(root);
+      SIOS.abrirAutorizacionExacta(selectedAuthorization.rowId);
+    };
+
+    root.addEventListener("click", async (event) => {
+      const target = event.target.closest("button");
+      if (!target) return;
+
+      try {
+        if (target.dataset.action === "abrir-panel") {
+          openPanel(root);
+          return;
+        }
+
+        if (target.dataset.action === "limpiar-buscador-plantillas") {
+          const search = root.querySelector("[data-template-search]");
+          search.value = "";
+          target.hidden = true;
+          renderTemplates(root, currentTemplates, "");
+          search.focus();
+          return;
+        }
+
+        if (target.dataset.templateApply) {
+          startTemplateApplication(getTemplate(target.dataset.templateApply));
+          return;
+        }
+
+        if (target.dataset.templateQuick) {
+          fillQuickDialog(root, getTemplate(target.dataset.templateQuick));
+          return;
+        }
+
+        if (target.dataset.templateEdit) {
+          fillTemplateForm(root, getTemplate(target.dataset.templateEdit));
+          return;
+        }
+
+        if (target.dataset.action === "plantilla-nueva") {
+          fillQuickDialog(root, {
+            id: "",
+            nombre: "",
+            categoria: "",
+            activo: true,
+            items: [{ codigo: "", descripcion: "", cantidad: 1, observacion: "", orden: 1 }]
+          }, "create");
+          return;
+        }
+
+        if (target.dataset.action === "template-item-add") {
+          const items = root.querySelector("[data-template-items]");
+          items.append(createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length));
+          return;
+        }
+
+        if (target.dataset.action === "quick-item-add") {
+          const items = root.querySelector("[data-quick-items]");
+          const current = target.closest(".template-item");
+          const nextItem = createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length, true, "quick-item-add");
+          items.insertBefore(nextItem, current?.nextElementSibling || null);
+          return;
+        }
+
+        if (target.dataset.action === "template-item-remove") {
+          const row = target.closest(".template-item");
+          row?.remove();
+          return;
+        }
+
+        if (target.dataset.action === "template-cancel") {
+          root.querySelector("[data-template-form]").hidden = true;
+          return;
+        }
+
+        if (target.dataset.action === "template-save") {
+          const saved = await SIOS.plantillasStorage.save(collectTemplateFromForm(root));
+          await refreshTemplates();
+          fillTemplateForm(root, saved);
+          textStatus(root, "Plantilla guardada.");
+          return;
+        }
+
+        if (target.dataset.action === "template-duplicate") {
+          const duplicate = collectTemplateFromForm(root, { newId: true, active: true });
+          const suggested = `${duplicate.nombre || "Plantilla"} (variante)`;
+          const newName = window.prompt("Nombre de la nueva plantilla:", suggested);
+          if (!newName) return;
+          duplicate.nombre = newName.trim();
+          duplicate.id = `${SIOS.crearIdPlantilla(duplicate.nombre)}-${Date.now().toString(36)}`;
+          const saved = await SIOS.plantillasStorage.save(duplicate);
+          await refreshTemplates();
+          fillTemplateForm(root, saved);
+          textStatus(root, `Guardada como nueva plantilla: ${saved.nombre}.`);
+          return;
+        }
+
+        if (target.dataset.action === "template-toggle") {
+          const current = collectTemplateFromForm(root);
+          current.activo = !current.activo;
+          const saved = await SIOS.plantillasStorage.save(current);
+          await refreshTemplates();
+          fillTemplateForm(root, saved);
+          textStatus(root, saved.activo ? "Plantilla activada." : "Plantilla desactivada.");
+          return;
+        }
+
+        if (target.dataset.action === "template-delete") {
+          const id = root.querySelector("[data-template-id]").value.trim();
+          if (!id) {
+            root.querySelector("[data-template-form]").hidden = true;
+            return;
+          }
+          if (!window.confirm("Eliminar esta plantilla?")) return;
+          await SIOS.plantillasStorage.delete(id);
+          await refreshTemplates();
+          root.querySelector("[data-template-form]").hidden = true;
+          textStatus(root, "Plantilla eliminada.");
+          return;
+        }
+
+        if (target.dataset.action === "quick-cancel") {
+          root.querySelector("[data-quick-dialog]").close();
+          return;
+        }
+
+        if (target.dataset.action === "quick-apply") {
+          const template = collectQuickTemplate(root);
+          root.querySelector("[data-quick-dialog]").close();
+          startTemplateApplication(template);
+          return;
+        }
+
+        if (target.dataset.action === "quick-save-new") {
+          const template = collectQuickTemplate(root);
+          const creating = root.querySelector("[data-quick-dialog]").dataset.mode === "create";
+          const suggested = creating ? "Nueva plantilla" : `${template.nombre} (variante)`;
+          const newName = window.prompt("Nombre de la nueva plantilla:", suggested);
+          if (!newName) return;
+          template.nombre = newName.trim();
+          template.id = `${SIOS.crearIdPlantilla(template.nombre)}-${Date.now().toString(36)}`;
+          const saved = await SIOS.plantillasStorage.save(template);
+          await refreshTemplates();
+          root.querySelector("[data-quick-dialog]").close();
+          textStatus(root, `Nueva plantilla guardada: ${saved.nombre}.`);
+          return;
+        }
+
+        if (target.dataset.action === "quick-delete") {
+          const dialog = root.querySelector("[data-quick-dialog]");
+          const id = root.querySelector("[data-quick-template-id]").value.trim();
+          const template = currentTemplates.find((item) => item.id === id);
+          if (!template) throw new Error("No se encontró la plantilla que desea eliminar.");
+          if (!window.confirm(`¿Eliminar la plantilla "${template.nombre}"? Esta acción no se puede deshacer.`)) return;
+          await SIOS.plantillasStorage.delete(id);
+          await refreshTemplates();
+          dialog.close();
+          textStatus(root, `Plantilla eliminada: ${template.nombre}.`);
+          return;
+        }
+
+        if (target.dataset.action === "plantillas-exportar") {
+          downloadJson("asistente-sios-plantillas.json", await SIOS.plantillasStorage.export());
+          textStatus(root, "Plantillas exportadas.");
+          return;
+        }
+
+        if (target.dataset.action === "plantillas-importar") {
+          root.querySelector("[data-import-file]").click();
+          return;
+        }
+
+        if (target.dataset.action === "cerrar-panel") {
+          closePanel(root);
+          return;
+        }
+
+        if (target.dataset.action === "diagnostico") {
+          renderDiagnostics(root);
+          textStatus(root, "Diagnóstico actualizado.");
+          return;
+        }
+
+        if (target.dataset.action === "copiar-diagnostico") {
+          await copyDiagnostics(root);
+          textStatus(root, "Diagnóstico copiado.");
+          return;
+        }
+
+        if (target.dataset.action === "buscar-afiliado") {
+          selectedAuthorization = null;
+          setStepEnabled(root, 3, false);
+          clearMatches(root);
+          textStatus(root, "Buscando afiliado...");
+          const dni = root.querySelector("[data-dni]").value.trim();
+          if (SIOS.detectarPantalla?.()?.type !== "busqueda") {
+            textStatus(root, "Abriendo Autorizaciones...");
+          }
+          const result = await SIOS.buscarAfiliado(dni);
+          textStatus(root, result.message);
+          if (!result.navigating) {
+            setStepEnabled(root, 2, true);
+            renderDiagnostics(root);
+            window.setTimeout(() => root.querySelector("[data-autorizacion]")?.focus(), 0);
+          }
+          return;
+        }
+
+        if (target.dataset.action === "confirmar-imprimir") {
+          textStatus(root, "Confirmando autorización en SIOS...");
+          savePendingAction({ type: "confirm-print" });
+          try {
+            const result = await SIOS.confirmarAutorizacionEImprimir();
+            textStatus(root, result.message);
+          } finally {
+            // Si SIOS recarga la página, este código no corre y la impresión se retoma al recargar.
+            clearPendingAction();
+          }
+          return;
+        }
+
+        if (target.dataset.action === "buscar-autorizacion") {
+          selectedAuthorization = null;
+          setStepEnabled(root, 3, false);
+          clearMatches(root);
+          setAuthResult(root, "Verificando...", "");
+          textStatus(root, "Verificando coincidencia exacta...");
+          const suffix = root.querySelector("[data-autorizacion]").value.trim();
+          const result = SIOS.buscarAutorizacionPorUltimosTres(suffix);
+          textStatus(root, result.message);
+
+          if (result.status === "selected") {
+            selectAuthorization(result.selected);
+          } else if (result.status === "multiple") {
+            setAuthResult(root, `Hay ${result.matches.length} coincidencias; elija una:`, "");
+            renderMatches(root, result.matches, selectAuthorization);
+          } else {
+            setAuthResult(root, result.message, "error");
+          }
+          return;
+        }
+
+      } catch (error) {
+        console.error("[Asistente SIOS Compra]", error);
+        rememberError(error);
+        renderDiagnostics(root);
+        textStatus(root, `Error: ${error.message}`);
+      }
+    });
+
+    root.querySelector("[data-import-file]").addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        const imported = await SIOS.plantillasStorage.import(parsed);
+        await refreshTemplates();
+        textStatus(root, `Plantillas importadas: ${imported.length}.`);
+      } catch (error) {
+        console.error("[Asistente SIOS Compra]", error);
+        rememberError(error);
+        renderDiagnostics(root);
+        textStatus(root, `Error: ${error.message}`);
+      }
+    });
+
+    window.addEventListener("pagehide", removeSiosDock, { once: true });
+
+    // Solo se abre automáticamente cuando la navegación fue iniciada explícitamente
+    // por el usuario al aplicar una plantilla en el paso 3.
+    if (screen.type === "detalle") {
+      setStepEnabled(root, 4, true);
+      const pending = peekPendingAction();
+      if (pending?.type === "template" && pending.template) {
+        // El panel queda minimizado para no tapar SIOS mientras se aplica la plantilla.
+        closePanel(root);
+        textStatus(root, `Esperando autorización abierta para aplicar ${pending.template.nombre}...`);
+        waitForPendingDetail(pending)
+          .then((ready) => {
+            if (!ready) {
+              throw new Error("No se pudo verificar que la autorización seleccionada esté abierta.");
+            }
+            textStatus(root, `Aplicando plantilla: ${pending.template.nombre}...`);
+            return SIOS.aplicarPlantillaEnDetalle(pending.template, pending.expectedAuthorization);
+          })
+          .then((result) => {
+            clearPendingAction();
+            textStatus(root, result.message);
+            renderDiagnostics(root);
+            openPanel(root);
+            ensureConfirmationVisible(root);
+          })
+          .catch((error) => {
+            clearPendingAction();
+            console.error("[Asistente SIOS Compra]", error);
+            rememberError(error);
+            renderDiagnostics(root);
+            textStatus(root, `Error: ${error.message}`);
+          });
+      } else if (pending?.type === "confirm-print") {
+        // El Confirmar de SIOS recargó la página; se retoma la impresión sola.
+        textStatus(root, "Confirmación aplicada. Abriendo impresión...");
+        SIOS.imprimirAutorizacion()
+          .then((result) => {
+            clearPendingAction();
+            textStatus(root, result.message);
+          })
+          .catch((error) => {
+            clearPendingAction();
+            console.error("[Asistente SIOS Compra]", error);
+            rememberError(error);
+            openPanel(root);
+            renderDiagnostics(root);
+            textStatus(root, `Error: ${error.message}`);
+          });
+      }
+    } else {
+      setStepEnabled(root, 4, false);
+    }
+
+    if (screen.type === "busqueda" && SIOS.tieneDniPendiente?.()) {
+      runPendingDniSearch().catch((error) => {
+        console.error("[Asistente SIOS Compra]", error);
+        rememberError(error);
+        openPanel(root);
+        renderDiagnostics(root);
+        textStatus(root, `Error: ${error.message}`);
+      });
+    }
+  }
+
+  SIOS.inicializarPanel = initPanel;
+})();

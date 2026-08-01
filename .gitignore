@@ -1,0 +1,7 @@
+# Material de prueba de SIOS y datos de trabajo no publicables.
+/fuentes/
+/buscadores-master/
+
+# Archivos temporales de herramientas locales.
+**/__pycache__/
+*.py[cod]
