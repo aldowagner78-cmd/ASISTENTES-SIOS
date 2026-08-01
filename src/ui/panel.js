@@ -554,6 +554,46 @@
     URL.revokeObjectURL(url);
   }
 
+  function settleAppModal(root, value) {
+    const modal = root.querySelector("[data-app-modal]");
+    if (!modal || modal.hidden) return;
+    const resolve = modal._resolve;
+    modal._resolve = null;
+    modal.hidden = true;
+    resolve?.(value);
+  }
+
+  function showAppModal(root, { title, message, inputLabel = "", inputValue = "", acceptText = "Aceptar" }) {
+    const modal = root.querySelector("[data-app-modal]");
+    const inputWrap = root.querySelector("[data-app-modal-input-wrap]");
+    const input = root.querySelector("[data-app-modal-input]");
+    if (!modal || !inputWrap || !input) return Promise.resolve(null);
+    modal._resolve?.(null);
+    root.querySelector("[data-app-modal-title]").textContent = title;
+    root.querySelector("[data-app-modal-message]").textContent = message;
+    root.querySelector("[data-app-modal-input-label]").textContent = inputLabel;
+    inputWrap.hidden = !inputLabel;
+    input.value = inputValue;
+    root.querySelector('[data-app-modal-action="accept"]').textContent = acceptText;
+    modal.hidden = false;
+    if (inputLabel) window.setTimeout(() => input.focus(), 0);
+    return new Promise((resolve) => { modal._resolve = resolve; });
+  }
+
+  function requestConfirmation(root, message) {
+    return showAppModal(root, { title: "Confirmar acción", message, acceptText: "Confirmar" });
+  }
+
+  function requestTemplateName(root, suggested) {
+    return showAppModal(root, {
+      title: "Guardar como nueva plantilla",
+      message: "Indique el nombre de la nueva plantilla.",
+      inputLabel: "Nombre de la plantilla",
+      inputValue: suggested,
+      acceptText: "Guardar"
+    });
+  }
+
   function catalogStorageArea() {
     const extensionApi = globalThis.browser || globalThis.chrome;
     if (extensionApi?.storage?.local) return extensionApi.storage.local;
@@ -652,6 +692,17 @@
     renderCatalogOptions();
 
     root.addEventListener("keydown", (event) => {
+      const appModal = root.querySelector("[data-app-modal]");
+      if (!appModal?.hidden && event.key === "Escape") {
+        event.preventDefault();
+        settleAppModal(root, null);
+        return;
+      }
+      if (!appModal?.hidden && event.key === "Enter" && event.target === root.querySelector("[data-app-modal-input]")) {
+        event.preventDefault();
+        settleAppModal(root, event.target.value);
+        return;
+      }
       if (event.key !== "Enter") return;
       const target = event.target;
       if (!target) return;
@@ -773,6 +824,18 @@
       if (!target) return;
 
       try {
+        if (target.dataset.appModalAction === "cancel") {
+          settleAppModal(root, null);
+          return;
+        }
+
+        if (target.dataset.appModalAction === "accept") {
+          const inputWrap = root.querySelector("[data-app-modal-input-wrap]");
+          const input = root.querySelector("[data-app-modal-input]");
+          settleAppModal(root, inputWrap?.hidden ? true : input?.value || "");
+          return;
+        }
+
         if (target.dataset.action === "abrir-panel") {
           openPanel(root);
           return;
@@ -817,7 +880,7 @@
           const code = catalogCode.value.trim();
           const entry = elementosCatalog.find((item) => item.codigo === code);
           if (!entry) throw new Error("Seleccione un código existente para eliminar.");
-          if (!window.confirm(`¿Eliminar ${entry.codigo} — ${entry.descripcion} del codigario?`)) return;
+          if (!await requestConfirmation(root, `¿Eliminar ${entry.codigo} — ${entry.descripcion} del codigario?`)) return;
           elementosCatalog = await saveCatalog(elementosCatalog.filter((item) => item.codigo !== code));
           SIOS.CODIGOS_ELEMENTOS = elementosCatalog;
           renderCatalogOptions();
@@ -903,7 +966,7 @@
         if (target.dataset.action === "template-duplicate") {
           const duplicate = collectTemplateFromForm(root, { newId: true, active: true });
           const suggested = `${duplicate.nombre || "Plantilla"} (variante)`;
-          const newName = window.prompt("Nombre de la nueva plantilla:", suggested);
+          const newName = await requestTemplateName(root, suggested);
           if (!newName) return;
           duplicate.nombre = newName.trim();
           duplicate.id = `${SIOS.crearIdPlantilla(duplicate.nombre)}-${Date.now().toString(36)}`;
@@ -930,7 +993,7 @@
             root.querySelector("[data-template-form]").hidden = true;
             return;
           }
-          if (!window.confirm("Eliminar esta plantilla?")) return;
+          if (!await requestConfirmation(root, "¿Eliminar esta plantilla?")) return;
           await SIOS.plantillasStorage.delete(id);
           await refreshTemplates();
           root.querySelector("[data-template-form]").hidden = true;
@@ -954,7 +1017,7 @@
           const template = collectQuickTemplate(root);
           const creating = root.querySelector("[data-quick-dialog]").dataset.mode === "create";
           const suggested = creating ? "Nueva plantilla" : `${template.nombre} (variante)`;
-          const newName = window.prompt("Nombre de la nueva plantilla:", suggested);
+          const newName = await requestTemplateName(root, suggested);
           if (!newName) return;
           template.nombre = newName.trim();
           template.id = `${SIOS.crearIdPlantilla(template.nombre)}-${Date.now().toString(36)}`;
@@ -970,7 +1033,7 @@
           const id = root.querySelector("[data-quick-template-id]").value.trim();
           const template = currentTemplates.find((item) => item.id === id);
           if (!template) throw new Error("No se encontró la plantilla que desea eliminar.");
-          if (!window.confirm(`¿Eliminar la plantilla "${template.nombre}"? Esta acción no se puede deshacer.`)) return;
+          if (!await requestConfirmation(root, `¿Eliminar la plantilla "${template.nombre}"? Esta acción no se puede deshacer.`)) return;
           await SIOS.plantillasStorage.delete(id);
           await refreshTemplates();
           dialog.close();
