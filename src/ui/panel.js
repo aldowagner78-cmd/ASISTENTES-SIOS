@@ -556,10 +556,10 @@
 
   function settleAppModal(root, value) {
     const modal = root.querySelector("[data-app-modal]");
-    if (!modal || modal.hidden) return;
+    if (!modal || !modal.open) return;
     const resolve = modal._resolve;
     modal._resolve = null;
-    modal.hidden = true;
+    modal.close();
     resolve?.(value);
   }
 
@@ -575,7 +575,7 @@
     inputWrap.hidden = !inputLabel;
     input.value = inputValue;
     root.querySelector('[data-app-modal-action="accept"]').textContent = acceptText;
-    modal.hidden = false;
+    modal.showModal();
     if (inputLabel) window.setTimeout(() => input.focus(), 0);
     return new Promise((resolve) => { modal._resolve = resolve; });
   }
@@ -690,15 +690,19 @@
       catalogCategory.value = item.categoria;
     };
     renderCatalogOptions();
+    root.querySelector("[data-app-modal]")?.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      settleAppModal(root, null);
+    });
 
     root.addEventListener("keydown", (event) => {
       const appModal = root.querySelector("[data-app-modal]");
-      if (!appModal?.hidden && event.key === "Escape") {
+      if (appModal?.open && event.key === "Escape") {
         event.preventDefault();
         settleAppModal(root, null);
         return;
       }
-      if (!appModal?.hidden && event.key === "Enter" && event.target === root.querySelector("[data-app-modal-input]")) {
+      if (appModal?.open && event.key === "Enter" && event.target === root.querySelector("[data-app-modal-input]")) {
         event.preventDefault();
         settleAppModal(root, event.target.value);
         return;
