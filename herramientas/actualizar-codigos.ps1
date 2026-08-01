@@ -19,7 +19,7 @@ $seen = @{}
 
 foreach ($row in $rows) {
     $codigo = ("" + $row.codigo).Trim()
-    $descripcion = (("" + $row.descripcion) -replace "\s+", " ").Trim().ToUpper()
+    $descripcion = ("" + $row.descripcion).Trim()
     $categoria = ("" + $row.categoria).Trim()
 
     if ($codigo -notmatch '^\d{6}$' -or -not $descripcion) {

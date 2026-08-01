@@ -2,17 +2,17 @@
     {
         "codigo":  "000100",
         "descripcion":  "ELEM MEDICO A CODIFICAR",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "000200",
         "descripcion":  "ELEMENTO DENEGADO",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "010000",
         "descripcion":  "NEUROQUIRURGICAS",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "010100",
@@ -102,7 +102,7 @@
     {
         "codigo":  "010400",
         "descripcion":  "FIBRA OPTICA",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "010401",
@@ -127,7 +127,7 @@
     {
         "codigo":  "010501",
         "descripcion":  "CASCO ORTOPEDICO",
-        "categoria":  "Ortopedia y Movilidad"
+        "categoria":  "ortopedia y movilidad"
     },
     {
         "codigo":  "010600",
@@ -172,11 +172,11 @@
     {
         "codigo":  "010700",
         "descripcion":  "OSTEOSET C/INST Y SET COL A PRESTAMO",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "osteosintesis"
     },
     {
         "codigo":  "011100",
-        "descripcion":  "COLAGENO REABSOR (DYRAGEN)",
+        "descripcion":  "COLAGENO REABSOR (DuRAGEN)",
         "categoria":  "Neurología"
     },
     {
@@ -187,22 +187,22 @@
     {
         "codigo":  "011201",
         "descripcion":  "DISTRACTOR INTRAORAL MAXILAR SUPERIOR TODAS LAS ME",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "Osteosintesis"
     },
     {
         "codigo":  "011202",
         "descripcion":  "DISTRACTOR INTRAORAL MAXILAR INFERIOR TODAS LAS ME",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "Osteosintesis"
     },
     {
         "codigo":  "011203",
         "descripcion":  "DISTRACTOR PALATINO TODAS LAS MEDIDAS",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "Osteosintesis"
     },
     {
         "codigo":  "011600",
         "descripcion":  "CIERRE PARA CRANEOSPLATIA DE TITANIO IMP",
-        "categoria":  "Neurología"
+        "categoria":  "neurología"
     },
     {
         "codigo":  "011601",
@@ -347,7 +347,7 @@
     {
         "codigo":  "020718",
         "descripcion":  "DISPOSITIVO DE COMUNICACION CON VISUAL",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "020719",
@@ -901,7 +901,7 @@
     },
     {
         "codigo":  "071303",
-        "descripcion":  "CATETER SEMI-IMPLANTABLE TIPO HICKMAN O BROVIAC P",
+        "descripcion":  "CATETER SEMI-IMPLANTABLE TIPO HICKMAN O BROVIAC  P",
         "categoria":  "Cardiología"
     },
     {
@@ -977,7 +977,7 @@
     {
         "codigo":  "071701",
         "descripcion":  "PARCHE",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "071900",
@@ -1607,22 +1607,22 @@
     {
         "codigo":  "100500",
         "descripcion":  "SONDAS VESICALES A PERMANENCIA",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100505",
         "descripcion":  "SONDA FOLEY 2 VIAS (DIF MED)",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100517",
         "descripcion":  "COMPRAS - SONDA DE FOLEY SILICONADA",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100601",
         "descripcion":  "COMPRAS - BOLSA COLECTORA DE ORINA 2L",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100608",
@@ -1632,32 +1632,32 @@
     {
         "codigo":  "100712",
         "descripcion":  "COMPRAS - PANAL ADULTO CON GEL (UNIDAD)",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100713",
         "descripcion":  "COMPRAS - PANAL ADULTO ELASTIZADO CON GEL (UNIDAD)",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100721",
         "descripcion":  "COMPRAS - PANAL INFANTIL ELASTIZADO C/ GEL(UNIDAD)",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100732",
         "descripcion":  "COMPRAS - PANAL JUVENIL CON GEL (UNIDAD)",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100733",
         "descripcion":  "COMPRAS - PANAL ELASTIZADO CON GEL (UNIDAD)",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100800",
         "descripcion":  "CHAPEAU (DISPOSITIVO P/INCONTINENCIA)",
-        "categoria":  "Enfermería"
+        "categoria":  "Enfermeria"
     },
     {
         "codigo":  "100900",
@@ -1747,7 +1747,7 @@
     {
         "codigo":  "120000",
         "descripcion":  "TRAUMATOLOGIA",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "120100",
@@ -1912,22 +1912,22 @@
     {
         "codigo":  "121327",
         "descripcion":  "DOSIS DE HUESO AUTOLOGO DE BANCO EN CHIPS",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "Osteosintesis"
     },
     {
         "codigo":  "121328",
         "descripcion":  "CABEZA FEMORAL ESTRUCTURADA",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "Osteosintesis"
     },
     {
         "codigo":  "121329",
         "descripcion":  "INJERTO TRICORTICAL DE CRESTA ILIACA",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "Osteosintesis"
     },
     {
         "codigo":  "121330",
         "descripcion":  "DOSIS DE SUSTITUTO OSEO",
-        "categoria":  "Osteosíntesis"
+        "categoria":  "Osteosintesis"
     },
     {
         "codigo":  "121333",
@@ -2017,7 +2017,7 @@
     {
         "codigo":  "121801",
         "descripcion":  "-",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "121810",
@@ -2161,7 +2161,7 @@
     },
     {
         "codigo":  "123613",
-        "descripcion":  "ENDOBUTTON HIBRIDO IMPORTADO",
+        "descripcion":  "ENDOBUTTON HIBRIDO IMPORTADO",
         "categoria":  "Osteosíntesis"
     },
     {
@@ -2321,7 +2321,7 @@
     },
     {
         "codigo":  "126011",
-        "descripcion":  "PROTESIS TOTAL CADERA REVISION CEMENTADO (CABEZA",
+        "descripcion":  "PROTESIS TOTAL CADERA REVISION CEMENTADO  (CABEZA",
         "categoria":  "Prótesis"
     },
     {
@@ -2516,7 +2516,7 @@
     },
     {
         "codigo":  "126069",
-        "descripcion":  "PROTESIS PARCIAL DE CADERA BIPOLAR CON TALLO FEMO",
+        "descripcion":  "PROTESIS PARCIAL DE CADERA BIPOLAR  CON TALLO FEMO",
         "categoria":  "Prótesis"
     },
     {
@@ -2586,7 +2586,7 @@
     },
     {
         "codigo":  "126083",
-        "descripcion":  "PROTESIS TOTAL DE RODILLA ALL POLY",
+        "descripcion":  "PROTESIS TOTAL DE RODILLA  ALL  POLY",
         "categoria":  "Prótesis"
     },
     {
@@ -2636,7 +2636,7 @@
     },
     {
         "codigo":  "126093",
-        "descripcion":  "TALLO NO CEMENTADO DE FIJACIÓN DISTAL IMP",
+        "descripcion":  "TALLO NO CEMENTADO DE FIJACIÓN  DISTAL IMP",
         "categoria":  "Prótesis"
     },
     {
@@ -3206,7 +3206,7 @@
     },
     {
         "codigo":  "126733",
-        "descripcion":  "PLACA ANATÓMICA BLOQUEADA PARA HUMERO DISTAL IMPOR",
+        "descripcion":  "PLACA ANATÓMICA BLOQUEADA PARA HUMERO DISTAL IMPOR",
         "categoria":  "Osteosíntesis"
     },
     {
@@ -3221,42 +3221,42 @@
     },
     {
         "codigo":  "126736",
-        "descripcion":  "PLACA ANAT BLOQ PARA CLAVICULA N",
+        "descripcion":  "PLACA  ANAT BLOQ PARA CLAVICULA N",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126737",
-        "descripcion":  "PLACA ANAT BLOQ PARA CLAVICULA I",
+        "descripcion":  "PLACA  ANAT BLOQ PARA CLAVICULA I",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126738",
-        "descripcion":  "PLACA ANATÓMICA BLOQUEADA PARA HUMERO DISTAL NAC.",
+        "descripcion":  "PLACA ANATÓMICA BLOQUEADA PARA HUMERO DISTAL NAC.",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126739",
-        "descripcion":  "PLACA ANAT BLOQ P/HUMERO DISTAL I",
+        "descripcion":  "PLACA  ANAT BLOQ P/HUMERO DISTAL I",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126740",
-        "descripcion":  "PLACA ANAT P/TROCANTE MAY T/ACCORD N",
+        "descripcion":  "PLACA  ANAT P/TROCANTE MAY T/ACCORD N",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126741",
-        "descripcion":  "PLACA ANAT P/TROCANTE MAY T/ACCORD I",
+        "descripcion":  "PLACA  ANAT P/TROCANTE MAY T/ACCORD I",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126742",
-        "descripcion":  "PLACA ANAT T/COMPACT FOOT RECTA/X N",
+        "descripcion":  "PLACA  ANAT T/COMPACT FOOT RECTA/X N",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126743",
-        "descripcion":  "PLACA ANAT T/COMPACT FOOT RECTA/X I",
+        "descripcion":  "PLACA  ANAT T/COMPACT FOOT RECTA/X I",
         "categoria":  "Osteosíntesis"
     },
     {
@@ -3376,12 +3376,12 @@
     },
     {
         "codigo":  "126768",
-        "descripcion":  "OSTEOSINTESIS MICROFRAGMENTOS BLOQUEADO DE 1,2",
+        "descripcion":  "OSTEOSINTESIS MICROFRAGMENTOS BLOQUEADO    DE 1,2",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "126769",
-        "descripcion":  "OSTEOSINTESIS MICROFRAGMENTOS BLOQUEADO DE 1,2",
+        "descripcion":  "OSTEOSINTESIS MICROFRAGMENTOS BLOQUEADO    DE 1,2",
         "categoria":  "Osteosíntesis"
     },
     {
@@ -3462,7 +3462,7 @@
     {
         "codigo":  "126791",
         "descripcion":  "MEMBRANA DE COLAGENO",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "126792",
@@ -3541,12 +3541,12 @@
     },
     {
         "codigo":  "127017",
-        "descripcion":  "ARPON DE 1.4 MM TITANIO (MANO-PIE) NACIONAL",
+        "descripcion":  "ARPON DE 1.4 MM TITANIO (MANO-PIE) NACIONAL",
         "categoria":  "Osteosíntesis"
     },
     {
         "codigo":  "127018",
-        "descripcion":  "ARPON DE 1.4 MM TITANIO (MANO-PIE) IMPORTADO",
+        "descripcion":  "ARPON DE 1.4 MM TITANIO (MANO-PIE) IMPORTADO",
         "categoria":  "Osteosíntesis"
     },
     {
@@ -3746,8 +3746,8 @@
     },
     {
         "codigo":  "202500",
-        "descripcion":  "STENT CUB.P/ ANEURISMA ARTERIAL PER. BALON EXPAND",
-        "categoria":  "Cardiología"
+        "descripcion":  "STENT CUB.P/ ANEURISMA ARTERIAL  PER. BALON EXPAND",
+        "categoria":  "cardiología"
     },
     {
         "codigo":  "240100",
@@ -3876,7 +3876,7 @@
     },
     {
         "codigo":  "370112",
-        "descripcion":  "APOSITO DE HIDROCOLOIDE TRANSPARENTE EN TODAS SUS",
+        "descripcion":  "APOSITO DE HIDROCOLOIDE TRANSPARENTE  EN TODAS SUS",
         "categoria":  "CX General"
     },
     {
@@ -3896,12 +3896,12 @@
     },
     {
         "codigo":  "370121",
-        "descripcion":  "APOSITO DE ALGINATO DE CALCIO EN TODAS SUS FORMAS",
+        "descripcion":  "APOSITO DE ALGINATO DE CALCIO  EN TODAS SUS FORMAS",
         "categoria":  "Enfermería"
     },
     {
         "codigo":  "370122",
-        "descripcion":  "APOSITO DE ALGINATO DE CALCIO Y PLATA EN TODAS SU",
+        "descripcion":  "APOSITO DE ALGINATO DE CALCIO Y PLATA  EN TODAS SU",
         "categoria":  "Enfermería"
     },
     {
@@ -3926,12 +3926,12 @@
     },
     {
         "codigo":  "370161",
-        "descripcion":  "APOSITO HIDROPOLIMERICO (AUTOADHESIVO O NO) EN TO",
+        "descripcion":  "APOSITO HIDROPOLIMERICO (AUTOADHESIVO O NO)  EN TO",
         "categoria":  "Enfermería"
     },
     {
         "codigo":  "370171",
-        "descripcion":  "APOSITO DE CARBOXIMETILCELULOSA EN TODAS SUS FORM",
+        "descripcion":  "APOSITO DE CARBOXIMETILCELULOSA  EN TODAS SUS FORM",
         "categoria":  "Enfermería"
     },
     {
@@ -4317,7 +4317,7 @@
     {
         "codigo":  "390000",
         "descripcion":  "MEDICAMENTOS FUERA DE CONVENIO",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "391502",
@@ -4336,7 +4336,7 @@
     },
     {
         "codigo":  "391505",
-        "descripcion":  "RECEPTOR PARA SISTEMA MONITOREO CONTINUO GLUCOSA",
+        "descripcion":  "RECEPTOR PARA  SISTEMA MONITOREO CONTINUO GLUCOSA",
         "categoria":  "Diabetes"
     },
     {
@@ -4377,12 +4377,12 @@
     {
         "codigo":  "391600",
         "descripcion":  "SEMILLAS DE BRAQUITERAPIA",
-        "categoria":  "CX General"
+        "categoria":  "Cx General"
     },
     {
         "codigo":  "400000",
         "descripcion":  "DESCARTABLES",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "400100",
@@ -4412,12 +4412,12 @@
     {
         "codigo":  "400202",
         "descripcion":  "FILTROS PARA QUIMIOTERAPIA",
-        "categoria":  "CX General"
+        "categoria":  "cx general"
     },
     {
         "codigo":  "400300",
         "descripcion":  "PIEL MEDICA",
-        "categoria":  "CX General"
+        "categoria":  "cx general"
     },
     {
         "codigo":  "400400",
@@ -4462,7 +4462,7 @@
     {
         "codigo":  "600000",
         "descripcion":  "BENEFICIOS DE EXCEPCION",
-        "categoria":  "Sin clasificar"
+        "categoria":  ""
     },
     {
         "codigo":  "600300",
