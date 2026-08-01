@@ -47,8 +47,8 @@
         "src/ui/panel.css"
       ],
       "matches": [
-        "https://www.santafe.gov.ar/iapos-www/*",
-        "https://app.santafe.gov.ar/iapos-app-srvt/*"
+        "https://www.santafe.gov.ar/*",
+        "https://app.santafe.gov.ar/*"
       ]
     }
   ],
