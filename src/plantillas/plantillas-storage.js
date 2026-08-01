@@ -5,7 +5,8 @@
   const STORAGE_KEY = "asistente-sios-plantillas";
 
   function storageArea() {
-    if (typeof browser !== "undefined" && browser.storage?.local) return browser.storage.local;
+    const extensionApi = globalThis.browser || globalThis.chrome;
+    if (extensionApi?.storage?.local) return extensionApi.storage.local;
     return null;
   }
 

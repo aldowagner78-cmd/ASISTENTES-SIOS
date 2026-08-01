@@ -7,13 +7,14 @@
   window.__ASISTENTE_SIOS_INICIADO__ = true;
 
   const SIOS = window.AsistenteSIOS;
+  const extensionApi = globalThis.browser || globalThis.chrome;
   const host = document.createElement("div");
   host.id = "asistente-sios-host";
   const shadow = host.attachShadow({ mode: "open" });
 
   const [html, css] = await Promise.all([
-    fetch(browser.runtime.getURL("src/ui/panel.html")).then((response) => response.text()),
-    fetch(browser.runtime.getURL("src/ui/panel.css")).then((response) => response.text())
+    fetch(extensionApi.runtime.getURL("src/ui/panel.html")).then((response) => response.text()),
+    fetch(extensionApi.runtime.getURL("src/ui/panel.css")).then((response) => response.text())
   ]);
 
   const style = document.createElement("style");

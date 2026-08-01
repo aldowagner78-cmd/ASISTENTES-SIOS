@@ -1,29 +1,21 @@
 # Asistente SIOS Compra
 
-Extension temporal para Firefox destinada a asistir la carga de compras dentro de SIOS de IAPOS.
+Extensión para Firefox y Chrome destinada a asistir la carga de compras dentro de SIOS de IAPOS.
 
 ## Estado de esta entrega
 
-- Version: `0.7.2`.
-- El panel permanece oculto por defecto y solo muestra el boton lateral `SIOS`.
-- El panel es arrastrable, redimensionable y recuerda posicion/tamano durante la sesion de la pestana.
+- Versión: `0.11.0`.
+- El panel permanece oculto por defecto y se abre desde un botón con ícono de carrito.
+- El panel es redimensionable y recuerda el ancho y el scroll durante la sesión.
 - Paso 1: busca DNI desde cualquier pantalla de SIOS. Si hace falta, navega a `Auditoria Medica Autorizaciones`, completa filtros y ejecuta `Buscar`.
 - Paso 2: verifica autorizacion por ultimos tres digitos, deduplica filas repetidas y muestra exclusivamente el estado de la columna `MED`.
 - Paso 3: aplica plantillas sobre la autorizacion seleccionada, sin abrirla durante el paso 2.
 - La autorizacion se abre recien al pulsar una plantilla.
 - Diagnostico permanece plegado por defecto y puede copiarse.
 - No guarda DNI, nombres de afiliados, tokens, cookies ni datos medicos sensibles.
-- Nunca pulsa la confirmacion general de la autorizacion ni imprimir.
+- Nunca confirma ni imprime automáticamente: esas acciones requieren la intervención explícita de la persona usuaria.
 
 ## Flujo real implementado para plantillas
-
-El flujo fue ajustado usando:
-
-- `fuentes/Grabación de pantalla desde 31-07-26 09:32:54.webm`
-- `fuentes/modificar.html`
-- `fuentes/2modif.html`
-- `fuentes/modalelementos.html`
-- `fuentes/secuencia-video-circuito-sios.md`
 
 Secuencia:
 

@@ -1,20 +1,26 @@
 {
   "manifest_version": 3,
   "name": "Asistente SIOS Compra",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "Asistente guiado para automatizar cargas de compra dentro de SIOS de IAPOS.",
   "permissions": [
     "storage"
   ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "host_permissions": [
-    "*://*/iapos-app-srvt/*",
-    "*://*/iapos-www/*"
+    "https://www.santafe.gov.ar/iapos-www/*",
+    "https://app.santafe.gov.ar/iapos-app-srvt/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "*://*/iapos-app-srvt/*",
-        "*://*/iapos-www/*"
+        "https://www.santafe.gov.ar/iapos-www/*",
+        "https://app.santafe.gov.ar/iapos-app-srvt/*"
       ],
       "js": [
         "src/content/detectar-pantalla.js",
@@ -41,8 +47,8 @@
         "src/ui/panel.css"
       ],
       "matches": [
-        "*://*/iapos-app-srvt/*",
-        "*://*/iapos-www/*"
+        "https://www.santafe.gov.ar/iapos-www/*",
+        "https://app.santafe.gov.ar/iapos-app-srvt/*"
       ]
     }
   ],
