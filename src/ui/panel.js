@@ -467,10 +467,13 @@
     const description = row.querySelector('[data-item-field="descripcion"]')?.value.trim() || "";
     const hasSelection = Boolean(code && description);
     const shouldCollapse = Boolean(collapsed);
+    if (hasSelection || shouldCollapse) row.dataset.showItemSummary = "true";
+    const showSummary = row.dataset.showItemSummary === "true";
     if (summary) {
-      summary.textContent = hasSelection ? `▶ ${code} — ${description}` : "▶ Ítem sin seleccionar";
+      const marker = shouldCollapse ? "▶" : "▼";
+      summary.textContent = hasSelection ? `${marker} ${code} — ${description}` : `${marker} Ítem sin seleccionar`;
       summary.title = "Haga clic para editar este ítem";
-      summary.hidden = !shouldCollapse;
+      summary.hidden = !showSummary;
     }
     if (fields) fields.hidden = shouldCollapse;
     row.classList.toggle("is-collapsed", shouldCollapse);
@@ -1017,7 +1020,7 @@
 
         if (target.dataset.action === "template-item-expand") {
           const row = target.closest(".template-item");
-          if (row) setTemplateItemCollapsed(row, false);
+          if (row) setTemplateItemCollapsed(row, !row.classList.contains("is-collapsed"));
           return;
         }
 
