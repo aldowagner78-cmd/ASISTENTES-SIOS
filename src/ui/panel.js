@@ -451,10 +451,10 @@
     wrap.append(summary, fields, grid(addButton, removeButton));
     wrap.querySelector('[data-item-field="codigo"]').value = item.codigo || "";
     wrap.querySelector('[data-item-field="descripcion"]').value = item.descripcion || "";
-    wrap.querySelector('[data-item-field="cantidad"]').value = item.cantidad || 1;
+    wrap.querySelector('[data-item-field="cantidad"]').value = item.cantidad ?? 1;
     wrap.querySelector('[data-item-field="observacion"]').value = item.observacion || "";
-    wrap.querySelector('[data-item-field="descripcionProtesis"]').value = item.descripcionProtesis || "";
-    wrap.querySelector('[data-item-field="prioridad"]').value = item.prioridad || "";
+    wrap.querySelector('[data-item-field="descripcionProtesis"]').value = item.descripcionProtesis ?? "-";
+    wrap.querySelector('[data-item-field="prioridad"]').value = item.prioridad ?? "ALTA";
     wrap.querySelector('[data-item-field="lugarEntrega"]').value = item.lugarEntrega || "";
     setTemplateItemCollapsed(wrap, Boolean(item.codigo && item.descripcion));
     return wrap;
@@ -482,6 +482,13 @@
       const remove = row.querySelector('[data-action="template-item-remove"]');
       if (remove) remove.disabled = rows.length <= 1;
     });
+  }
+
+  function completeTemplateItem(row) {
+    const code = row?.querySelector('[data-item-field="codigo"]')?.value.trim();
+    const description = row?.querySelector('[data-item-field="descripcion"]')?.value.trim();
+    if (!code || !description) throw new Error("Seleccione un elemento antes de agregar otro ítem.");
+    setTemplateItemCollapsed(row, true);
   }
 
   function collectItemsFrom(root, containerSelector) {
@@ -557,9 +564,10 @@
     root.querySelector("[data-quick-title]").textContent = creating ? "Nueva plantilla" : "Ajustar y aplicar";
     root.querySelector("[data-quick-help]").textContent = creating ?
       "Configure los ítems y guarde la nueva plantilla." :
-      "Cambios solo para esta carga, salvo que guarde una nueva plantilla.";
+      "Ajuste los ítems y guarde cambios sin aplicarlos, o aplíquelos ahora.";
     root.querySelector('[data-action="quick-apply"]').hidden = creating;
-    root.querySelector("[data-quick-save]").textContent = creating ? "Guardar plantilla" : "Guardar como nueva";
+    root.querySelector("[data-quick-save-changes]").hidden = creating || !template.id;
+    root.querySelector("[data-quick-save]").textContent = creating ? "Guardar plantilla y cerrar" : "Guardar como nueva";
     root.querySelector('[data-action="quick-delete"]').hidden = creating || !template.id;
     const items = root.querySelector("[data-quick-items]");
     items.textContent = "";
@@ -970,7 +978,10 @@
 
         if (target.dataset.action === "template-item-add") {
           const items = root.querySelector("[data-template-items]");
-          items.append(createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length));
+          const current = target.closest(".template-item");
+          completeTemplateItem(current);
+          const nextItem = createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length);
+          items.insertBefore(nextItem, current?.nextElementSibling || null);
           updateTemplateItemControls(items);
           return;
         }
@@ -978,6 +989,7 @@
         if (target.dataset.action === "quick-item-add") {
           const items = root.querySelector("[data-quick-items]");
           const current = target.closest(".template-item");
+          completeTemplateItem(current);
           const nextItem = createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length, true, "quick-item-add");
           items.insertBefore(nextItem, current?.nextElementSibling || null);
           updateTemplateItemControls(items);
@@ -1058,6 +1070,15 @@
           const template = collectQuickTemplate(root);
           root.querySelector("[data-quick-dialog]").close();
           startTemplateApplication(template);
+          return;
+        }
+
+        if (target.dataset.action === "quick-save-changes") {
+          const template = collectQuickTemplate(root);
+          const saved = await SIOS.plantillasStorage.save(template);
+          await refreshTemplates();
+          root.querySelector("[data-quick-dialog]").close();
+          textStatus(root, `Cambios guardados: ${saved.nombre}.`);
           return;
         }
 
