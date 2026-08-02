@@ -744,6 +744,7 @@
       if (!row || !found) return false;
       row.querySelector('[data-item-field="codigo"]').value = found.codigo;
       row.querySelector('[data-item-field="descripcion"]').value = found.descripcion;
+      setTemplateItemCollapsed(row, row.classList.contains("is-collapsed"));
       return true;
     };
     renderCatalogOptions();
@@ -787,6 +788,10 @@
         renderCatalogResults();
         return;
       }
+      if (target?.dataset?.itemField === "buscarElemento") {
+        fillTemplateItemFromCatalog(target.closest(".template-item"), target.value);
+        return;
+      }
       if (!target?.hasAttribute?.("data-template-search")) return;
       const clear = root.querySelector('[data-action="limpiar-buscador-plantillas"]');
       if (clear) clear.hidden = !target.value;
@@ -813,7 +818,10 @@
         const found = /^\d{6}$/.test(code) && elementosCatalog.find((el) => el.codigo === code);
         if (found) {
           const desc = row.querySelector('[data-item-field="descripcion"]');
-          if (!desc.value.trim()) desc.value = found.descripcion;
+          desc.value = found.descripcion;
+          const search = row.querySelector('[data-item-field="buscarElemento"]');
+          if (search) search.value = `${found.codigo} — ${found.descripcion}`;
+          setTemplateItemCollapsed(row, row.classList.contains("is-collapsed"));
         }
       }
     });
