@@ -28,12 +28,9 @@
         "src/content/buscar-autorizacion.js",
         "src/plantillas/campos-sios.js",
         "src/plantillas/codigos-elementos.js",
-        "src/plantillas/plantillas-default.js",
         "src/plantillas/plantillas-validacion.js",
         "src/plantillas/plantillas-storage.js",
         "src/plantillas/plantillas-ejecucion.js",
-        "src/elementos/lente-intraocular-derecho.js",
-        "src/elementos/elementos.js",
         "src/ui/panel.js",
         "src/content/content.js"
       ],
