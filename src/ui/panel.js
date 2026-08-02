@@ -416,6 +416,12 @@
       container.append(...children);
       return container;
     };
+    const fields = document.createElement("div");
+    fields.className = "template-item-fields";
+    const summary = document.createElement("button");
+    summary.type = "button";
+    summary.className = "template-item-summary";
+    summary.dataset.action = "template-item-expand";
     const addButton = document.createElement("button");
     addButton.type = "button";
     addButton.className = "template-item-add";
@@ -428,7 +434,7 @@
     removeButton.disabled = !removable;
     removeButton.textContent = "Eliminar ítem";
 
-    wrap.append(
+    fields.append(
       field("Buscar elemento", "buscarElemento", { list: "sios-elementos-list", placeholder: "Escriba código o nombre del elemento..." }),
       grid(
         field("Código", "codigo", { type: "text", inputmode: "numeric" }),
@@ -440,9 +446,9 @@
         field("Prioridad", "prioridad", { type: "text", placeholder: "ALTA" }),
         field("Lugar de entrega", "lugarEntrega", { type: "text" })
       ),
-      field("Observación", "observacion", { type: "text" }),
-      grid(addButton, removeButton)
+      field("Observación", "observacion", { type: "text" })
     );
+    wrap.append(summary, fields, grid(addButton, removeButton));
     wrap.querySelector('[data-item-field="codigo"]').value = item.codigo || "";
     wrap.querySelector('[data-item-field="descripcion"]').value = item.descripcion || "";
     wrap.querySelector('[data-item-field="cantidad"]').value = item.cantidad || 1;
@@ -450,7 +456,32 @@
     wrap.querySelector('[data-item-field="descripcionProtesis"]').value = item.descripcionProtesis || "";
     wrap.querySelector('[data-item-field="prioridad"]').value = item.prioridad || "";
     wrap.querySelector('[data-item-field="lugarEntrega"]').value = item.lugarEntrega || "";
+    setTemplateItemCollapsed(wrap, Boolean(item.codigo && item.descripcion));
     return wrap;
+  }
+
+  function setTemplateItemCollapsed(row, collapsed) {
+    const fields = row.querySelector(".template-item-fields");
+    const summary = row.querySelector(".template-item-summary");
+    const code = row.querySelector('[data-item-field="codigo"]')?.value.trim() || "";
+    const description = row.querySelector('[data-item-field="descripcion"]')?.value.trim() || "";
+    const canCollapse = Boolean(code && description);
+    const shouldCollapse = collapsed && canCollapse;
+    if (summary) {
+      summary.textContent = canCollapse ? `${code} — ${description}` : "Ítem sin seleccionar";
+      summary.hidden = !shouldCollapse;
+    }
+    if (fields) fields.hidden = shouldCollapse;
+    row.classList.toggle("is-collapsed", shouldCollapse);
+  }
+
+  function updateTemplateItemControls(container) {
+    const rows = Array.from(container?.querySelectorAll(":scope > .template-item") || []);
+    rows.forEach((row, index) => {
+      row.dataset.itemIndex = String(index);
+      const remove = row.querySelector('[data-action="template-item-remove"]');
+      if (remove) remove.disabled = rows.length <= 1;
+    });
   }
 
   function collectItemsFrom(root, containerSelector) {
@@ -488,6 +519,7 @@
     items.textContent = "";
     (template.items?.length ? template.items : [{ cantidad: 1, orden: 1 }])
       .forEach((item, index) => items.append(createTemplateItemEditor(item, index)));
+    updateTemplateItemControls(items);
     const body = root.querySelector("[data-panel-body]");
     if (body) {
       const bodyRect = body.getBoundingClientRect();
@@ -531,7 +563,8 @@
     root.querySelector('[data-action="quick-delete"]').hidden = creating || !template.id;
     const items = root.querySelector("[data-quick-items]");
     items.textContent = "";
-    template.items.forEach((item, index) => items.append(createTemplateItemEditor(item, index, false, "quick-item-add")));
+    template.items.forEach((item, index) => items.append(createTemplateItemEditor(item, index, true, "quick-item-add")));
+    updateTemplateItemControls(items);
     dialog.showModal();
   }
 
@@ -747,6 +780,7 @@
         if (found) {
           row.querySelector('[data-item-field="codigo"]').value = found.codigo;
           row.querySelector('[data-item-field="descripcion"]').value = found.descripcion;
+          setTemplateItemCollapsed(row, true);
         }
         return;
       }
@@ -937,6 +971,7 @@
         if (target.dataset.action === "template-item-add") {
           const items = root.querySelector("[data-template-items]");
           items.append(createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length));
+          updateTemplateItemControls(items);
           return;
         }
 
@@ -945,12 +980,21 @@
           const current = target.closest(".template-item");
           const nextItem = createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length, true, "quick-item-add");
           items.insertBefore(nextItem, current?.nextElementSibling || null);
+          updateTemplateItemControls(items);
           return;
         }
 
         if (target.dataset.action === "template-item-remove") {
           const row = target.closest(".template-item");
-          row?.remove();
+          const items = row?.parentElement;
+          if (items?.querySelectorAll(":scope > .template-item").length > 1) row.remove();
+          updateTemplateItemControls(items);
+          return;
+        }
+
+        if (target.dataset.action === "template-item-expand") {
+          const row = target.closest(".template-item");
+          if (row) setTemplateItemCollapsed(row, false);
           return;
         }
 
