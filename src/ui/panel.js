@@ -1076,7 +1076,12 @@
         if (target.dataset.action === "template-item-remove") {
           const row = target.closest(".template-item");
           const items = row?.parentElement;
-          if (items?.querySelectorAll(":scope > .template-item").length > 1) row.remove();
+          if (!items || items.querySelectorAll(":scope > .template-item").length <= 1) return;
+          const description = row.querySelector('[data-item-field="descripcion"]')?.value.trim();
+          const code = row.querySelector('[data-item-field="codigo"]')?.value.trim();
+          const itemName = [code, description].filter(Boolean).join(" — ") || "este ítem";
+          if (!await requestConfirmation(root, `¿Eliminar ${itemName} de la plantilla?`)) return;
+          row.remove();
           updateTemplateItemControls(items);
           return;
         }
