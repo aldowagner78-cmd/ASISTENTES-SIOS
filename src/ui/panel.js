@@ -410,6 +410,23 @@
       label.append(input);
       return label;
     };
+    const searchField = () => {
+      const label = document.createElement("label");
+      label.append(document.createTextNode("Buscar elemento"));
+      const search = document.createElement("div");
+      search.className = "template-item-search";
+      const input = document.createElement("input");
+      input.dataset.itemField = "buscarElemento";
+      input.placeholder = "Escriba código o nombre del elemento...";
+      input.autocomplete = "off";
+      const options = document.createElement("div");
+      options.className = "template-item-options";
+      options.dataset.itemSearchOptions = "";
+      options.hidden = true;
+      search.append(input, options);
+      label.append(search);
+      return label;
+    };
     const grid = (...children) => {
       const container = document.createElement("div");
       container.className = "template-item-grid";
@@ -438,7 +455,7 @@
     removeButton.append(trashIcon);
 
     fields.append(
-      field("Buscar elemento", "buscarElemento", { list: "sios-elementos-list", placeholder: "Escriba código o nombre del elemento...", autocomplete: "off" }),
+      searchField(),
       grid(
         field("Código", "codigo", { type: "text", inputmode: "numeric" }),
         field("Cantidad", "cantidad", { type: "number", min: "1", step: "1" })
@@ -747,6 +764,29 @@
       setTemplateItemCollapsed(row, row.classList.contains("is-collapsed"));
       return true;
     };
+    const renderTemplateItemOptions = (row, value) => {
+      const options = row?.querySelector("[data-item-search-options]");
+      if (!options) return;
+      const query = normalizeSearch(value || "");
+      options.textContent = "";
+      if (query.length < 2) {
+        options.hidden = true;
+        return;
+      }
+      const matches = elementosCatalog
+        .filter((item) => normalizeSearch(`${item.codigo} ${item.descripcion}`).includes(query))
+        .slice(0, 12);
+      for (const item of matches) {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "template-item-option";
+        option.dataset.action = "template-item-select";
+        option.dataset.itemCode = item.codigo;
+        option.textContent = `${item.codigo} — ${item.descripcion}`;
+        options.append(option);
+      }
+      options.hidden = matches.length === 0;
+    };
     renderCatalogOptions();
     root.querySelector("[data-app-modal]")?.addEventListener("cancel", (event) => {
       event.preventDefault();
@@ -767,7 +807,6 @@
       }
       if (event.key === "Enter" && event.target?.dataset?.itemField === "buscarElemento") {
         event.preventDefault();
-        fillTemplateItemFromCatalog(event.target.closest(".template-item"), event.target.value);
         return;
       }
       if (event.key !== "Enter") return;
@@ -789,7 +828,7 @@
         return;
       }
       if (target?.dataset?.itemField === "buscarElemento") {
-        fillTemplateItemFromCatalog(target.closest(".template-item"), target.value);
+        renderTemplateItemOptions(target.closest(".template-item"), target.value);
         return;
       }
       if (!target?.hasAttribute?.("data-template-search")) return;
@@ -809,7 +848,6 @@
       if (!row) return;
 
       if (target.dataset.itemField === "buscarElemento") {
-        fillTemplateItemFromCatalog(row, target.value);
         return;
       }
 
@@ -902,6 +940,19 @@
           const inputWrap = root.querySelector("[data-app-modal-input-wrap]");
           const input = root.querySelector("[data-app-modal-input]");
           settleAppModal(root, inputWrap?.hidden ? true : input?.value || "");
+          return;
+        }
+
+        if (target.dataset.action === "template-item-select") {
+          const row = target.closest(".template-item");
+          if (!fillTemplateItemFromCatalog(row, target.dataset.itemCode)) return;
+          const search = row.querySelector('[data-item-field="buscarElemento"]');
+          const options = row.querySelector("[data-item-search-options]");
+          if (search) search.value = "";
+          if (options) {
+            options.textContent = "";
+            options.hidden = true;
+          }
           return;
         }
 
