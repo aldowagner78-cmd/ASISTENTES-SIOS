@@ -435,7 +435,7 @@
     removeButton.textContent = "Eliminar ítem";
 
     fields.append(
-      field("Buscar elemento", "buscarElemento", { list: "sios-elementos-list", placeholder: "Escriba código o nombre del elemento..." }),
+      field("Buscar elemento", "buscarElemento", { list: "sios-elementos-list", placeholder: "Escriba código o nombre del elemento...", autocomplete: "off" }),
       grid(
         field("Código", "codigo", { type: "text", inputmode: "numeric" }),
         field("Cantidad", "cantidad", { type: "number", min: "1", step: "1" })
@@ -465,10 +465,11 @@
     const summary = row.querySelector(".template-item-summary");
     const code = row.querySelector('[data-item-field="codigo"]')?.value.trim() || "";
     const description = row.querySelector('[data-item-field="descripcion"]')?.value.trim() || "";
-    const canCollapse = Boolean(code && description);
-    const shouldCollapse = collapsed && canCollapse;
+    const hasSelection = Boolean(code && description);
+    const shouldCollapse = Boolean(collapsed);
     if (summary) {
-      summary.textContent = canCollapse ? `${code} — ${description}` : "Ítem sin seleccionar";
+      summary.textContent = hasSelection ? `▶ ${code} — ${description}` : "▶ Ítem sin seleccionar";
+      summary.title = "Haga clic para editar este ítem";
       summary.hidden = !shouldCollapse;
     }
     if (fields) fields.hidden = shouldCollapse;
@@ -572,6 +573,7 @@
     const items = root.querySelector("[data-quick-items]");
     items.textContent = "";
     template.items.forEach((item, index) => items.append(createTemplateItemEditor(item, index, true, "quick-item-add")));
+    if (!creating) items.querySelectorAll(":scope > .template-item").forEach((row) => setTemplateItemCollapsed(row, true));
     updateTemplateItemControls(items);
     dialog.showModal();
   }
@@ -730,6 +732,14 @@
       catalogDescription.value = item.descripcion;
       catalogCategory.value = item.categoria;
     };
+    const fillTemplateItemFromCatalog = (row, value) => {
+      const code = String(value || "").match(/^\d{6}/)?.[0];
+      const found = code && elementosCatalog.find((item) => item.codigo === code);
+      if (!row || !found) return false;
+      row.querySelector('[data-item-field="codigo"]').value = found.codigo;
+      row.querySelector('[data-item-field="descripcion"]').value = found.descripcion;
+      return true;
+    };
     renderCatalogOptions();
     root.querySelector("[data-app-modal]")?.addEventListener("cancel", (event) => {
       event.preventDefault();
@@ -746,6 +756,11 @@
       if (appModal?.open && event.key === "Enter" && event.target === root.querySelector("[data-app-modal-input]")) {
         event.preventDefault();
         settleAppModal(root, event.target.value);
+        return;
+      }
+      if (event.key === "Enter" && event.target?.dataset?.itemField === "buscarElemento") {
+        event.preventDefault();
+        fillTemplateItemFromCatalog(event.target.closest(".template-item"), event.target.value);
         return;
       }
       if (event.key !== "Enter") return;
@@ -783,13 +798,7 @@
       if (!row) return;
 
       if (target.dataset.itemField === "buscarElemento") {
-        const code = target.value.match(/^(\d{6})/)?.[1];
-        const found = code && elementosCatalog.find((el) => el.codigo === code);
-        if (found) {
-          row.querySelector('[data-item-field="codigo"]').value = found.codigo;
-          row.querySelector('[data-item-field="descripcion"]').value = found.descripcion;
-          setTemplateItemCollapsed(row, true);
-        }
+        fillTemplateItemFromCatalog(row, target.value);
         return;
       }
 
@@ -980,9 +989,10 @@
           const items = root.querySelector("[data-template-items]");
           const current = target.closest(".template-item");
           completeTemplateItem(current);
-          const nextItem = createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length);
+          const nextItem = createTemplateItemEditor({ codigo: "", descripcion: "", cantidad: 1, descripcionProtesis: "-", prioridad: "ALTA", lugarEntrega: "", observacion: "", orden: items.children.length + 1 }, items.children.length);
           items.insertBefore(nextItem, current?.nextElementSibling || null);
           updateTemplateItemControls(items);
+          window.setTimeout(() => nextItem.querySelector('[data-item-field="buscarElemento"]')?.focus(), 0);
           return;
         }
 
@@ -990,9 +1000,10 @@
           const items = root.querySelector("[data-quick-items]");
           const current = target.closest(".template-item");
           completeTemplateItem(current);
-          const nextItem = createTemplateItemEditor({ cantidad: 1, orden: items.children.length + 1 }, items.children.length, true, "quick-item-add");
+          const nextItem = createTemplateItemEditor({ codigo: "", descripcion: "", cantidad: 1, descripcionProtesis: "-", prioridad: "ALTA", lugarEntrega: "", observacion: "", orden: items.children.length + 1 }, items.children.length, true, "quick-item-add");
           items.insertBefore(nextItem, current?.nextElementSibling || null);
           updateTemplateItemControls(items);
+          window.setTimeout(() => nextItem.querySelector('[data-item-field="buscarElemento"]')?.focus(), 0);
           return;
         }
 
