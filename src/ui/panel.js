@@ -207,7 +207,12 @@
       row.append(quick);
       frequent.append(row);
     }
-    if (empty) empty.hidden = visible.length > 0;
+    if (empty) {
+      empty.hidden = visible.length > 0;
+      empty.textContent = normalizedQuery
+        ? "Sin resultados para esta búsqueda."
+        : "Todavía no hay plantillas. Cree una o importe un respaldo.";
+    }
 
     for (const item of templates) {
       if (!list) break;

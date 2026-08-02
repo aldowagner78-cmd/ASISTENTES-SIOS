@@ -69,21 +69,9 @@ La ejecucion de plantillas registra estos estados en diagnostico:
 - `COMPLETED`
 - `ERROR`
 
-## Plantillas iniciales
+## Plantillas
 
-- `Malla 15 × 15 — x1`
-  - codigo: `080213`
-  - descripcion: `Malla de polipropileno 15 x 15`
-  - descripcionBusquedaModal: `MALLA`
-  - especialidadModal: `ELEMENTOS MEDICOS`
-  - cantidad: `1`
-
-- `Malla 15 × 15 — x2`
-  - codigo: `080213`
-  - descripcion: `Malla de polipropileno 15 x 15`
-  - descripcionBusquedaModal: `MALLA`
-  - especialidadModal: `ELEMENTOS MEDICOS`
-  - cantidad: `2`
+Un perfil nuevo comienza sin plantillas. Se pueden crear desde el panel o importar un respaldo JSON exportado previamente. Las plantillas se guardan en el almacenamiento local del navegador.
 
 Cada item admite:
 
@@ -174,8 +162,8 @@ El diagnostico de plantillas registra:
 ## Casos revisados
 
 - Una sola coincidencia de autorizacion: el paso 2 selecciona y no abre.
-- Malla x1: carga codigo `080213`, busca `MALLA`, especialidad `ELEMENTOS MEDICOS`, cantidad `1`, y exige codigo exacto `080213`.
-- Malla x2: carga codigo `080213`, busca `MALLA`, especialidad `ELEMENTOS MEDICOS`, cantidad `2`, y exige codigo exacto `080213`.
+- Una plantilla creada o importada conserva sus items y valores configurados.
+- El editor permite crear, editar, guardar, eliminar y agregar varios items a una plantilla.
 - Modal con una coincidencia exacta: selecciona esa opcion.
 - Modal con varias opciones: si varias coinciden exactamente, se detiene.
 - Modal sin coincidencia: se detiene y muestra opciones seguras en diagnostico.
@@ -195,6 +183,14 @@ El diagnostico de plantillas registra:
 3. Pulsar `Cargar complemento temporal`.
 4. Seleccionar `manifest.json` dentro de esta carpeta.
 5. Entrar a SIOS. El boton lateral `SIOS` queda visible en el borde izquierdo.
+
+## Verificación antes de publicar una versión
+
+1. Probar una carga real con un item y otra con varios items.
+2. Comprobar creación, edición, eliminación, exportación e importación de plantillas.
+3. Probar cancelación y un error de verificación, confirmando que nunca se ejecute la confirmación o impresión automáticamente.
+4. Ejecutar `powershell -ExecutionPolicy Bypass -File .\herramientas\actualizar-codigos.ps1` si se modificó `codigos-elementos.csv`.
+5. Incrementar `version` en `manifest.json` antes de generar el próximo paquete para Firefox o Chrome.
 
 ## Privacidad
 
