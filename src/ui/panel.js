@@ -422,17 +422,20 @@
     summary.type = "button";
     summary.className = "template-item-summary";
     summary.dataset.action = "template-item-expand";
-    const addButton = document.createElement("button");
-    addButton.type = "button";
-    addButton.className = "template-item-add";
-    addButton.dataset.action = addAction;
-    addButton.textContent = "Agregar ítem";
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "template-item-remove";
     removeButton.dataset.action = "template-item-remove";
     removeButton.disabled = !removable;
-    removeButton.textContent = "Eliminar ítem";
+    removeButton.title = "Eliminar ítem";
+    removeButton.setAttribute("aria-label", "Eliminar ítem");
+    const trashIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    trashIcon.setAttribute("viewBox", "0 0 24 24");
+    trashIcon.setAttribute("aria-hidden", "true");
+    const trashBody = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    trashBody.setAttribute("d", "M5 7h14l-1 13H6L5 7Zm3-3h8l1 3H7l1-3Zm2 6v7m4-7v7");
+    trashIcon.append(trashBody);
+    removeButton.append(trashIcon);
 
     fields.append(
       field("Buscar elemento", "buscarElemento", { list: "sios-elementos-list", placeholder: "Escriba código o nombre del elemento...", autocomplete: "off" }),
@@ -448,7 +451,7 @@
       ),
       field("Observación", "observacion", { type: "text" })
     );
-    wrap.append(summary, fields, grid(addButton, removeButton));
+    wrap.append(summary, removeButton, fields);
     wrap.querySelector('[data-item-field="codigo"]').value = item.codigo || "";
     wrap.querySelector('[data-item-field="descripcion"]').value = item.descripcion || "";
     wrap.querySelector('[data-item-field="cantidad"]').value = item.cantidad ?? 1;
@@ -1001,10 +1004,11 @@
 
         if (target.dataset.action === "quick-item-add") {
           const items = root.querySelector("[data-quick-items]");
-          const current = target.closest(".template-item");
-          completeTemplateItem(current);
+          const current = Array.from(items.querySelectorAll(":scope > .template-item"))
+            .find((item) => !item.classList.contains("is-collapsed"));
+          if (current) completeTemplateItem(current);
           const nextItem = createTemplateItemEditor({ codigo: "", descripcion: "", cantidad: 1, descripcionProtesis: "-", prioridad: "ALTA", lugarEntrega: "", observacion: "", orden: items.children.length + 1 }, items.children.length, true, "quick-item-add");
-          items.insertBefore(nextItem, current?.nextElementSibling || null);
+          items.append(nextItem);
           updateTemplateItemControls(items);
           window.setTimeout(() => nextItem.querySelector('[data-item-field="buscarElemento"]')?.focus(), 0);
           return;
