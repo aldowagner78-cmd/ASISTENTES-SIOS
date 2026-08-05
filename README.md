@@ -73,6 +73,8 @@ La ejecucion de plantillas registra estos estados en diagnostico:
 
 Un perfil nuevo comienza sin plantillas. Se pueden crear desde el panel o importar un respaldo JSON exportado previamente. Las plantillas se guardan en el almacenamiento local del navegador.
 
+Ademas, la extension mantiene copias de respaldo internas de las plantillas para poder recuperarlas si la lectura principal falla o queda corrupta. Igual conviene exportarlas periodicamente a JSON cuando haga cambios importantes.
+
 Cada item admite:
 
 - `codigo`

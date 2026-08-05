@@ -3,6 +3,8 @@
 
   const SIOS = window.AsistenteSIOS = window.AsistenteSIOS || {};
   const STORAGE_KEY = "asistente-sios-plantillas";
+  const BACKUP_KEY = `${STORAGE_KEY}-backup`;
+  const BACKUP_LIMIT = 10;
 
   function storageArea() {
     const extensionApi = globalThis.browser || globalThis.chrome;
@@ -10,23 +12,90 @@
     return null;
   }
 
-  async function readRaw() {
-    const storage = storageArea();
-    if (storage) {
-      const data = await storage.get(STORAGE_KEY);
-      return data[STORAGE_KEY] || null;
+  function parseJsonSafe(raw) {
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
     }
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+  }
+
+  function normalizeTemplateList(value) {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.templates)) return value.templates;
+    if (Array.isArray(value?.plantillas)) return value.plantillas;
+    return null;
+  }
+
+  async function readFromExtensionStorage(key) {
+    const storage = storageArea();
+    if (!storage) return null;
+    const data = await storage.get(key);
+    return data?.[key] ?? null;
+  }
+
+  function readFromLocalStorage(key) {
+    return parseJsonSafe(localStorage.getItem(key));
+  }
+
+  function makeBackupEntry(templates, source = "runtime") {
+    return {
+      at: new Date().toISOString(),
+      source,
+      templates
+    };
+  }
+
+  function normalizeBackupHistory(value) {
+    if (Array.isArray(value)) return value.filter((entry) => Array.isArray(entry?.templates));
+    return [];
+  }
+
+  async function readBackupHistory() {
+    const direct = normalizeBackupHistory(await readFromExtensionStorage(BACKUP_KEY));
+    if (direct.length) return direct;
+
+    const local = normalizeBackupHistory(readFromLocalStorage(BACKUP_KEY));
+    if (local.length) return local;
+
+    return [];
+  }
+
+  async function readRaw() {
+    const extensionValue = await readFromExtensionStorage(STORAGE_KEY);
+    const direct = normalizeTemplateList(extensionValue);
+    if (direct) return direct;
+
+    const localValue = readFromLocalStorage(STORAGE_KEY);
+    const local = normalizeTemplateList(localValue);
+    if (local) return local;
+
+    const backups = await readBackupHistory();
+    if (backups.length) {
+      return backups[0].templates;
+    }
+
+    return null;
   }
 
   async function writeRaw(templates) {
     const storage = storageArea();
     if (storage) {
       await storage.set({ [STORAGE_KEY]: templates });
-      return;
     }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+
+    const history = await readBackupHistory();
+    const nextHistory = [makeBackupEntry(templates), ...history]
+      .filter((entry, index, all) => index === all.findIndex((candidate) => JSON.stringify(candidate.templates) === JSON.stringify(entry.templates)))
+      .slice(0, BACKUP_LIMIT);
+
+    if (storage) {
+      await storage.set({ [BACKUP_KEY]: nextHistory });
+    }
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(nextHistory));
   }
 
   async function listTemplates() {
@@ -34,6 +103,8 @@
     if (!Array.isArray(templates)) {
       // Un perfil nuevo empieza sin plantillas; cada usuario crea o importa las propias.
       templates = [];
+      await writeRaw(templates);
+    } else {
       await writeRaw(templates);
     }
     const normalized = templates.map(SIOS.normalizarPlantilla);
@@ -110,11 +181,37 @@
     return listTemplates();
   }
 
+  async function listBackups() {
+    return readBackupHistory();
+  }
+
+  async function restoreLatestBackup() {
+    const backups = await readBackupHistory();
+    const latest = backups.find((entry) => Array.isArray(entry?.templates) && entry.templates.length);
+    if (!latest) {
+      throw new Error("No hay respaldos internos con plantillas para restaurar.");
+    }
+
+    const validation = SIOS.validarListaPlantillas(latest.templates);
+    if (!validation.ok) {
+      throw new Error(`El respaldo interno no es valido: ${validation.errors.join(" ")}`);
+    }
+
+    await writeRaw(validation.templates);
+    return {
+      restored: validation.templates,
+      backupAt: latest.at || "",
+      source: latest.source || "runtime"
+    };
+  }
+
   SIOS.plantillasStorage = {
     list: listTemplates,
     save: saveTemplate,
     delete: deleteTemplate,
     import: importTemplates,
-    export: exportTemplates
+    export: exportTemplates,
+    listBackups,
+    restoreLatestBackup
   };
 })();

@@ -51,7 +51,7 @@
     if (String(step) === "3") {
       section?.classList.remove("disabled");
       section?.classList.toggle("templates-disabled", !enabled);
-      section?.querySelectorAll("[data-template-apply], [data-template-quick], [data-elemento-id]").forEach((control) => {
+      section?.querySelectorAll("[data-template-apply], [data-elemento-id]").forEach((control) => {
         control.disabled = !enabled;
       });
       return;
@@ -232,7 +232,7 @@
 
     const step = root.querySelector('[data-step="3"]');
     const enabled = !step?.classList.contains("templates-disabled");
-    step?.querySelectorAll("[data-template-apply], [data-template-quick]").forEach((control) => {
+    step?.querySelectorAll("[data-template-apply]").forEach((control) => {
       control.disabled = !enabled;
     });
   }
@@ -625,6 +625,11 @@
     URL.revokeObjectURL(url);
   }
 
+  function formatBackupTimestamp(date = new Date()) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+  }
+
   function settleAppModal(root, value) {
     const modal = root.querySelector("[data-app-modal]");
     if (!modal || !modal.open) return;
@@ -709,10 +714,12 @@
     let templates = await SIOS.plantillasStorage.list();
     const screen = SIOS.detectarPantalla();
 
+    const isDetailScreen = () => SIOS.detectarPantalla?.()?.type === "detalle";
+
     // Siempre oculto al cargar: solo queda el botón lateral.
     closePanel(root);
     setStepEnabled(root, 2, false);
-    setStepEnabled(root, 3, false);
+    setStepEnabled(root, 3, isDetailScreen());
     renderTemplates(root, templates);
     renderDiagnostics(root);
     initPanelMovement(root);
@@ -905,13 +912,30 @@
       window.setTimeout(() => root.querySelector("[data-autorizacion]")?.focus(), 0);
     };
 
-    const startTemplateApplication = (template) => {
+    const startTemplateApplication = async (template) => {
+      const validation = SIOS.validarPlantilla(template);
+      if (!validation.ok) throw new Error(validation.errors.join(" "));
+
+      if (!selectedAuthorization && isDetailScreen()) {
+        textStatus(root, `Aplicando plantilla: ${validation.template.nombre}...`);
+        closePanel(root);
+        try {
+          const result = await SIOS.aplicarPlantillaEnDetalle(validation.template);
+          textStatus(root, result.message);
+          renderDiagnostics(root);
+          openPanel(root);
+          ensureConfirmationVisible(root);
+          return;
+        } catch (error) {
+          openPanel(root);
+          throw error;
+        }
+      }
+
       if (!selectedAuthorization) {
         throw new Error("Primero debe verificar y seleccionar una autorización.");
       }
 
-      const validation = SIOS.validarPlantilla(template);
-      if (!validation.ok) throw new Error(validation.errors.join(" "));
       const primerLapizListado = SIOS.obtenerControlAperturaAutorizacion?.(selectedAuthorization.rowId) ||
         `vMODIFICAR_${selectedAuthorization.rowId}`;
 
@@ -1030,7 +1054,7 @@
         }
 
         if (target.dataset.templateApply) {
-          startTemplateApplication(getTemplate(target.dataset.templateApply));
+          await startTemplateApplication(getTemplate(target.dataset.templateApply));
           return;
         }
 
@@ -1156,7 +1180,7 @@
         if (target.dataset.action === "quick-apply") {
           const template = collectQuickTemplate(root);
           root.querySelector("[data-quick-dialog]").close();
-          startTemplateApplication(template);
+          await startTemplateApplication(template);
           return;
         }
 
@@ -1203,8 +1227,29 @@
           return;
         }
 
+        if (target.dataset.action === "plantillas-exportar-fechado") {
+          const templates = await SIOS.plantillasStorage.export();
+          downloadJson(`asistente-sios-plantillas-${formatBackupTimestamp()}.json`, templates);
+          textStatus(root, "Backup JSON descargado.");
+          return;
+        }
+
         if (target.dataset.action === "plantillas-importar") {
           root.querySelector("[data-import-file]").click();
+          return;
+        }
+
+        if (target.dataset.action === "plantillas-restaurar-backup") {
+          const backups = await SIOS.plantillasStorage.listBackups?.();
+          const latest = backups?.find((entry) => Array.isArray(entry?.templates) && entry.templates.length);
+          if (!latest) {
+            throw new Error("No hay respaldos internos disponibles para restaurar.");
+          }
+          const label = latest.at ? new Date(latest.at).toLocaleString("es-AR") : "sin fecha";
+          if (!await requestConfirmation(root, `¿Restaurar el ultimo respaldo interno (${label})? Reemplazará las plantillas actuales.`)) return;
+          const result = await SIOS.plantillasStorage.restoreLatestBackup();
+          await refreshTemplates();
+          textStatus(root, `Respaldo restaurado. Plantillas recuperadas: ${result.restored.length}.`);
           return;
         }
 

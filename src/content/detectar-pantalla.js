@@ -28,19 +28,19 @@
     const formAction = document.forms.MAINFORM?.getAttribute("action") || "";
     const title = byId("TITLETEXT")?.textContent?.trim() || document.title || "";
 
-    if (hasAll(BUSQUEDA_IDS) || /auauditcabe_ww/i.test(formAction)) {
+    if (hasAll(DETALLE_IDS) || /auautorizacion/i.test(formAction)) {
       return {
-        type: "busqueda",
-        label: "Busqueda de autorizaciones",
+        type: "detalle",
+        label: "Detalle de autorizacion",
         title,
         formAction
       };
     }
 
-    if (hasAll(DETALLE_IDS) || /auautorizacion/i.test(formAction)) {
+    if (hasAll(BUSQUEDA_IDS) || /auauditcabe_ww/i.test(formAction)) {
       return {
-        type: "detalle",
-        label: "Detalle de autorizacion",
+        type: "busqueda",
+        label: "Busqueda de autorizaciones",
         title,
         formAction
       };
