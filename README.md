@@ -75,7 +75,7 @@ Un perfil nuevo comienza sin plantillas. Se pueden crear desde el panel o import
 
 Ademas, la extension mantiene copias de respaldo internas de las plantillas para poder recuperarlas si la lectura principal falla o queda corrupta. Igual conviene exportarlas periodicamente a JSON cuando haga cambios importantes.
 
-Cada alta, edicion, importacion, eliminacion o restauracion de plantillas dispara tambien la descarga automatica de un backup JSON fechado, para tener una copia externa fuera del navegador.
+El backup interno es silencioso y automatico: se actualiza con los cambios de plantillas y tambien se toma un snapshot al cerrar la pagina. Si el almacenamiento principal falla al volver a abrir, se recupera desde el ultimo backup interno.
 
 Cada item admite:
 

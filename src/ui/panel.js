@@ -625,17 +625,6 @@
     URL.revokeObjectURL(url);
   }
 
-  function formatBackupTimestamp(date = new Date()) {
-    const pad = (value) => String(value).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
-  }
-
-  async function autoDownloadTemplateBackup(reason = "cambio") {
-    const templates = await SIOS.plantillasStorage.export();
-    downloadJson(`asistente-sios-plantillas-auto-${reason}-${formatBackupTimestamp()}.json`, templates);
-    return templates;
-  }
-
   function settleAppModal(root, value) {
     const modal = root.querySelector("[data-app-modal]");
     if (!modal || !modal.open) return;
@@ -721,6 +710,10 @@
     const screen = SIOS.detectarPantalla();
 
     const isDetailScreen = () => SIOS.detectarPantalla?.()?.type === "detalle";
+
+    window.addEventListener("pagehide", () => {
+      SIOS.plantillasStorage.snapshot?.("session-close");
+    }, { once: true });
 
     // Siempre oculto al cargar: solo queda el botón lateral.
     closePanel(root);
@@ -1134,7 +1127,6 @@
 
         if (target.dataset.action === "template-save") {
           const saved = await SIOS.plantillasStorage.save(collectTemplateFromForm(root));
-          await autoDownloadTemplateBackup("guardar");
           await refreshTemplates();
           fillTemplateForm(root, saved);
           textStatus(root, "Plantilla guardada.");
@@ -1149,7 +1141,6 @@
           duplicate.nombre = newName.trim();
           duplicate.id = `${SIOS.crearIdPlantilla(duplicate.nombre)}-${Date.now().toString(36)}`;
           const saved = await SIOS.plantillasStorage.save(duplicate);
-          await autoDownloadTemplateBackup("duplicar");
           await refreshTemplates();
           fillTemplateForm(root, saved);
           textStatus(root, `Guardada como nueva plantilla: ${saved.nombre}.`);
@@ -1160,7 +1151,6 @@
           const current = collectTemplateFromForm(root);
           current.activo = !current.activo;
           const saved = await SIOS.plantillasStorage.save(current);
-          await autoDownloadTemplateBackup(saved.activo ? "activar" : "desactivar");
           await refreshTemplates();
           fillTemplateForm(root, saved);
           textStatus(root, saved.activo ? "Plantilla activada." : "Plantilla desactivada.");
@@ -1175,7 +1165,6 @@
           }
           if (!await requestConfirmation(root, "¿Eliminar esta plantilla?")) return;
           await SIOS.plantillasStorage.delete(id);
-          await autoDownloadTemplateBackup("eliminar");
           await refreshTemplates();
           root.querySelector("[data-template-form]").hidden = true;
           textStatus(root, "Plantilla eliminada.");
@@ -1197,7 +1186,6 @@
         if (target.dataset.action === "quick-save-changes") {
           const template = collectQuickTemplate(root);
           const saved = await SIOS.plantillasStorage.save(template);
-          await autoDownloadTemplateBackup("guardar");
           await refreshTemplates();
           root.querySelector("[data-quick-dialog]").close();
           textStatus(root, `Cambios guardados: ${saved.nombre}.`);
@@ -1213,7 +1201,6 @@
           template.nombre = newName.trim();
           template.id = `${SIOS.crearIdPlantilla(template.nombre)}-${Date.now().toString(36)}`;
           const saved = await SIOS.plantillasStorage.save(template);
-          await autoDownloadTemplateBackup("guardar");
           await refreshTemplates();
           root.querySelector("[data-quick-dialog]").close();
           textStatus(root, `Nueva plantilla guardada: ${saved.nombre}.`);
@@ -1227,7 +1214,6 @@
           if (!template) throw new Error("No se encontró la plantilla que desea eliminar.");
           if (!await requestConfirmation(root, `¿Eliminar la plantilla "${template.nombre}"? Esta acción no se puede deshacer.`)) return;
           await SIOS.plantillasStorage.delete(id);
-          await autoDownloadTemplateBackup("eliminar");
           await refreshTemplates();
           dialog.close();
           textStatus(root, `Plantilla eliminada: ${template.nombre}.`);
@@ -1240,30 +1226,8 @@
           return;
         }
 
-        if (target.dataset.action === "plantillas-exportar-fechado") {
-          const templates = await SIOS.plantillasStorage.export();
-          downloadJson(`asistente-sios-plantillas-${formatBackupTimestamp()}.json`, templates);
-          textStatus(root, "Backup JSON descargado.");
-          return;
-        }
-
         if (target.dataset.action === "plantillas-importar") {
           root.querySelector("[data-import-file]").click();
-          return;
-        }
-
-        if (target.dataset.action === "plantillas-restaurar-backup") {
-          const backups = await SIOS.plantillasStorage.listBackups?.();
-          const latest = backups?.find((entry) => Array.isArray(entry?.templates) && entry.templates.length);
-          if (!latest) {
-            throw new Error("No hay respaldos internos disponibles para restaurar.");
-          }
-          const label = latest.at ? new Date(latest.at).toLocaleString("es-AR") : "sin fecha";
-          if (!await requestConfirmation(root, `¿Restaurar el ultimo respaldo interno (${label})? Reemplazará las plantillas actuales.`)) return;
-          const result = await SIOS.plantillasStorage.restoreLatestBackup();
-          await autoDownloadTemplateBackup("restaurar");
-          await refreshTemplates();
-          textStatus(root, `Respaldo restaurado. Plantillas recuperadas: ${result.restored.length}.`);
           return;
         }
 
@@ -1352,7 +1316,6 @@
       try {
         const parsed = JSON.parse(await file.text());
         const imported = await SIOS.plantillasStorage.import(parsed);
-        await autoDownloadTemplateBackup("importar");
         await refreshTemplates();
         textStatus(root, `Plantillas importadas: ${imported.length}.`);
       } catch (error) {

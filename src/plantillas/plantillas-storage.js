@@ -79,7 +79,7 @@
     return null;
   }
 
-  async function writeRaw(templates) {
+  async function writeRaw(templates, source = "runtime") {
     const storage = storageArea();
     if (storage) {
       await storage.set({ [STORAGE_KEY]: templates });
@@ -88,7 +88,7 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
 
     const history = await readBackupHistory();
-    const nextHistory = [makeBackupEntry(templates), ...history]
+    const nextHistory = [makeBackupEntry(templates, source), ...history]
       .filter((entry, index, all) => index === all.findIndex((candidate) => JSON.stringify(candidate.templates) === JSON.stringify(entry.templates)))
       .slice(0, BACKUP_LIMIT);
 
@@ -103,9 +103,9 @@
     if (!Array.isArray(templates)) {
       // Un perfil nuevo empieza sin plantillas; cada usuario crea o importa las propias.
       templates = [];
-      await writeRaw(templates);
+      await writeRaw(templates, "bootstrap");
     } else {
-      await writeRaw(templates);
+      await writeRaw(templates, "refresh");
     }
     const normalized = templates.map(SIOS.normalizarPlantilla);
     let changed = false;
@@ -132,7 +132,7 @@
       }
     }
 
-    if (changed) await writeRaw(normalized);
+    if (changed) await writeRaw(normalized, "normalize");
     return normalized;
   }
 
@@ -149,13 +149,13 @@
     } else {
       templates.push(validation.template);
     }
-    await writeRaw(templates);
+    await writeRaw(templates, "save");
     return validation.template;
   }
 
   async function deleteTemplate(id) {
     const templates = (await listTemplates()).filter((item) => item.id !== id);
-    await writeRaw(templates);
+    await writeRaw(templates, "delete");
   }
 
   async function importTemplates(incoming) {
@@ -173,7 +173,7 @@
     }
 
     const merged = existing.concat(validation.templates);
-    await writeRaw(merged);
+    await writeRaw(merged, "import");
     return validation.templates;
   }
 
@@ -197,12 +197,19 @@
       throw new Error(`El respaldo interno no es valido: ${validation.errors.join(" ")}`);
     }
 
-    await writeRaw(validation.templates);
+    await writeRaw(validation.templates, "restore");
     return {
       restored: validation.templates,
       backupAt: latest.at || "",
       source: latest.source || "runtime"
     };
+  }
+
+  async function snapshotTemplates(source = "session-close") {
+    const current = await readRaw();
+    if (!Array.isArray(current)) return [];
+    await writeRaw(current, source);
+    return current;
   }
 
   SIOS.plantillasStorage = {
@@ -212,6 +219,7 @@
     import: importTemplates,
     export: exportTemplates,
     listBackups,
-    restoreLatestBackup
+    restoreLatestBackup,
+    snapshot: snapshotTemplates
   };
 })();
