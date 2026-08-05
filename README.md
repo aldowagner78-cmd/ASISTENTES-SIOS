@@ -194,7 +194,8 @@ El diagnostico de plantillas registra:
 2. Comprobar creación, edición, eliminación, exportación e importación de plantillas.
 3. Probar cancelación y un error de verificación, confirmando que nunca se ejecute la confirmación o impresión automáticamente.
 4. Ejecutar `powershell -ExecutionPolicy Bypass -File .\herramientas\actualizar-codigos.ps1` si se modificó `codigos-elementos.csv`.
-5. Incrementar `version` en `manifest.json` antes de generar el próximo paquete para Firefox o Chrome.
+
+El archivo `codigos_con_rubros.xlsx` queda versionado como fuente de trabajo para regenerar y auditar el codigario en otra PC. 5. Incrementar `version` en `manifest.json` antes de generar el próximo paquete para Firefox o Chrome.
 
 ## Privacidad
 
