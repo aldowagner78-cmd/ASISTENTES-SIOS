@@ -4,7 +4,7 @@ Extensión para Firefox y Chrome destinada a asistir la carga de compras dentro 
 
 ## Estado de esta entrega
 
-- Versión: `0.11.0`.
+- Versión: `0.12.0`.
 - El panel permanece oculto por defecto y se abre desde un botón con ícono de carrito.
 - El panel es redimensionable y recuerda el ancho y el scroll durante la sesión.
 - Paso 1: busca DNI desde cualquier pantalla de SIOS. Si hace falta, navega a `Auditoria Medica Autorizaciones`, completa filtros y ejecuta `Buscar`.
@@ -194,8 +194,9 @@ El diagnostico de plantillas registra:
 2. Comprobar creación, edición, eliminación, exportación e importación de plantillas.
 3. Probar cancelación y un error de verificación, confirmando que nunca se ejecute la confirmación o impresión automáticamente.
 4. Ejecutar `powershell -ExecutionPolicy Bypass -File .\herramientas\actualizar-codigos.ps1` si se modificó `codigos-elementos.csv`.
+5. Incrementar `version` en `manifest.json` antes de generar el próximo paquete para Firefox o Chrome.
 
-El archivo `codigos_con_rubros.xlsx` queda versionado como fuente de trabajo para regenerar y auditar el codigario en otra PC. 5. Incrementar `version` en `manifest.json` antes de generar el próximo paquete para Firefox o Chrome.
+El archivo `codigos_con_rubros.xlsx` queda versionado como fuente de trabajo para regenerar y auditar el codigario en otra PC.
 
 ## Privacidad
 
