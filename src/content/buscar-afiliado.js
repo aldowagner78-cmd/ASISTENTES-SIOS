@@ -5,6 +5,22 @@
   const PENDING_DNI_KEY = "asistente-sios-pending-dni";
   const MAX_PENDING_AGE_MS = 2 * 60 * 1000;
   const MAX_NAVIGATION_ATTEMPTS = 2;
+  const SEARCH_DEFAULTS = {
+    vVERBAJAS: false,
+    vAUCATIPPRES: "",
+    vAUCANUMINT_NUMERO_INTERNO: "0",
+    vAUCAESTADO: "",
+    vAUCAORDINT: "0",
+    vAUCANOMAFI_NOMBRE_AFILIADO: "",
+    vCOBERTURA: "0",
+    vDELEGACION: "",
+    vPROVRAZSOC: "",
+    vAURCODIGO: "",
+    vMDMEDCODIGOSNCHECK: "T",
+    vMATEFE: "",
+    vNOMEFE: "",
+    vAUCAESPEFC: ""
+  };
 
   function fail(message, details) {
     const error = new Error(message);
@@ -55,6 +71,25 @@
     }
     checkbox.value = "S";
     emit(checkbox, "change");
+  }
+
+  function resetSearchDefaults() {
+    for (const [id, value] of Object.entries(SEARCH_DEFAULTS)) {
+      const control = document.getElementById(id) || document.querySelector(`[name="${CSS.escape(id)}"]`);
+      if (!control) continue;
+      if (typeof value === "boolean") {
+        if (control.checked !== value) {
+          control.click();
+        } else {
+          control.value = value ? "S" : "N";
+          emit(control, "change");
+        }
+        continue;
+      }
+      control.value = value;
+      emit(control, "input");
+      emit(control, "change");
+    }
   }
 
   function hasGridRows() {
@@ -169,6 +204,7 @@
     if (!numeroAfiliado) {
       fail("Numero de afiliado invalido. Use solo digitos, o prefijo F/M seguido de digitos.");
     }
+    resetSearchDefaults();
     setValue(getRequired("vAUCANROAFI_NUMERO_AFILIADO"), numeroAfiliado);
     setSelectByValue("vNFLGVISTA", "0", "Todas");
     setSelectByValue("vMODALIDAD", "1", "Autorizacion Previa");
