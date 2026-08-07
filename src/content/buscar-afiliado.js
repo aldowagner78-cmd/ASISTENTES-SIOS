@@ -5,22 +5,6 @@
   const PENDING_DNI_KEY = "asistente-sios-pending-dni";
   const MAX_PENDING_AGE_MS = 2 * 60 * 1000;
   const MAX_NAVIGATION_ATTEMPTS = 2;
-  const SEARCH_FILTERS_TO_RESET = {
-    vVERBAJAS: false,
-    vAUCATIPPRES: "",
-    vAUCANUMINT_NUMERO_INTERNO: "0",
-    vAUCAESTADO: "",
-    vAUCAORDINT: "0",
-    vAUCANOMAFI_NOMBRE_AFILIADO: "",
-    vCOBERTURA: "0",
-    vDELEGACION: "",
-    vPROVRAZSOC: "",
-    vAURCODIGO: "",
-    vMDMEDCODIGOSNCHECK: "T",
-    vMATEFE: "",
-    vNOMEFE: "",
-    vAUCAESPEFC: ""
-  };
 
   function fail(message, details) {
     const error = new Error(message);
@@ -73,19 +57,6 @@
     emit(checkbox, "change");
   }
 
-  function resetVisibleSearchFilters() {
-    for (const [id, value] of Object.entries(SEARCH_FILTERS_TO_RESET)) {
-      const control = document.getElementById(id) || document.querySelector(`[name="${CSS.escape(id)}"]`);
-      if (!control) continue;
-      if (typeof value === "boolean") {
-        control.checked = value;
-        control.value = value ? "S" : "N";
-      } else {
-        control.value = value;
-      }
-    }
-  }
-
   function hasGridRows() {
     const gridData = document.querySelector("input[name='GridContainerDataV']");
     if (gridData?.value && gridData.value !== "[]") {
@@ -131,31 +102,12 @@
     return pending;
   }
 
-  function normalizeSpaces(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
-  }
-
   function getStableAuthorizationUrl() {
     const current = new URL(window.location.href);
     return new URL("auauditcabe_ww?M,0", current).href;
   }
 
-  function findAuthorizationLink() {
-    const links = Array.from(document.querySelectorAll("a[href]"));
-    return links.find((link) => {
-      const href = link.getAttribute("href") || "";
-      const text = normalizeSpaces(link.textContent);
-      return /auauditcabe_ww/i.test(href) &&
-        (/autorizaci/i.test(text) || /auditor/i.test(text) || /oria autorizaci/i.test(text));
-    }) || links.find((link) => /auauditcabe_ww/i.test(link.getAttribute("href") || ""));
-  }
-
   function navigateToAuthorizations() {
-    const link = findAuthorizationLink();
-    if (link) {
-      link.click();
-      return;
-    }
     window.location.assign(getStableAuthorizationUrl());
   }
 
@@ -217,7 +169,6 @@
     if (!numeroAfiliado) {
       fail("Numero de afiliado invalido. Use solo digitos, o prefijo F/M seguido de digitos.");
     }
-    resetVisibleSearchFilters();
     setValue(getRequired("vAUCANROAFI_NUMERO_AFILIADO"), numeroAfiliado);
     setSelectByValue("vNFLGVISTA", "0", "Todas");
     setSelectByValue("vMODALIDAD", "1", "Autorizacion Previa");
@@ -239,18 +190,13 @@
       fail("El documento debe tener 6 a 9 digitos, con prefijo opcional F, M o 0.");
     }
 
-    const screen = SIOS.detectarPantalla?.();
-    if (screen?.type !== "busqueda") {
-      savePendingDni(normalized, readPendingDni());
-      navigateToAuthorizations();
-      return {
-        ok: true,
-        navigating: true,
-        message: "Abriendo Autorizaciones..."
-      };
-    }
-
-    return executeSearch(normalized);
+    savePendingDni(normalized, readPendingDni());
+    navigateToAuthorizations();
+    return {
+      ok: true,
+      navigating: true,
+      message: "Abriendo Autorizaciones..."
+    };
   }
 
   SIOS.buscarAfiliado = buscarAfiliado;
