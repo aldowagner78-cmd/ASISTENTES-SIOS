@@ -92,6 +92,41 @@
     }
   }
 
+  function isAjaxBusy() {
+    const visible = (element) => Boolean(element && element.getClientRects().length && getComputedStyle(element).visibility !== "hidden");
+    return visible(document.getElementById("gx_ajax_notification")) ||
+      visible(document.getElementById("gx_ajax_indicator"));
+  }
+
+  function waitForSearchActionReady(button, timeoutMs) {
+    return new Promise((resolve, reject) => {
+      const started = Date.now();
+      const check = () => {
+        if (!isAjaxBusy() && !button.disabled) {
+          resolve();
+          return;
+        }
+        if (Date.now() - started > timeoutMs) {
+          reject(new Error("SIOS no habilito el boton Buscar dentro del tiempo esperado."));
+          return;
+        }
+        window.requestAnimationFrame(check);
+      };
+      window.requestAnimationFrame(check);
+    });
+  }
+
+  function clickLikeUser(element) {
+    for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup"]) {
+      try {
+        const EventType = type.startsWith("pointer") ? (window.PointerEvent || window.MouseEvent) : window.MouseEvent;
+        element.dispatchEvent(new EventType(type, { bubbles: true, cancelable: true, view: window }));
+      } catch { /* eventos auxiliares */ }
+    }
+    element.focus({ preventScroll: true });
+    element.click();
+  }
+
   function hasGridRows() {
     const gridData = document.querySelector("input[name='GridContainerDataV']");
     if (gridData?.value && gridData.value !== "[]") {
@@ -211,7 +246,8 @@
     setCheckboxChecked("vREQCOMPRA");
 
     const searchButton = getRequired("SEARCHBUTTON");
-    searchButton.click();
+    await waitForSearchActionReady(searchButton, 5000);
+    clickLikeUser(searchButton);
     await waitForGrid(20000);
 
     return {
