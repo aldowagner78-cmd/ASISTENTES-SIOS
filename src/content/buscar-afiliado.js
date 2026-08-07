@@ -5,6 +5,26 @@
   const PENDING_DNI_KEY = "asistente-sios-pending-dni";
   const MAX_PENDING_AGE_MS = 2 * 60 * 1000;
   const MAX_NAVIGATION_ATTEMPTS = 2;
+  const SEARCH_FILTER_DEFAULTS = {
+    vOGORCODIGO: "1",
+    vNFLGVISTA: "0",
+    vVERBAJAS: false,
+    vAUCATIPPRES: "",
+    vAUCANUMINT_NUMERO_INTERNO: "0",
+    vAUCAESTADO: "",
+    vAUCAORDINT: "0",
+    vAUCANOMAFI_NOMBRE_AFILIADO: "",
+    vCOBERTURA: "0",
+    vDELEGACION: "0",
+    vPROVRAZSOC: "",
+    vAURCODIGO: "",
+    vMODALIDAD: "1",
+    vMATEFE: "",
+    vNOMEFE: "",
+    vAUCAESPEFC: "",
+    vORDEREDBY: "0",
+    vMDMEDCODIGOSNCHECK: false
+  };
 
   function fail(message, details) {
     const error = new Error(message);
@@ -55,6 +75,33 @@
     }
     checkbox.value = "S";
     emit(checkbox, "change");
+  }
+
+  function setCheckboxValue(id, checked) {
+    const checkbox = document.getElementById(id) || document.querySelector(`[name="${CSS.escape(id)}"]`);
+    if (!checkbox) return;
+    if (checkbox.type !== "checkbox") {
+      fail(`${id} no es un checkbox`);
+    }
+    if (checkbox.checked !== checked) {
+      checkbox.checked = checked;
+      emit(checkbox, "input");
+      emit(checkbox, "change");
+    }
+  }
+
+  function resetSearchFilters() {
+    for (const [id, value] of Object.entries(SEARCH_FILTER_DEFAULTS)) {
+      const control = document.getElementById(id) || document.querySelector(`[name="${CSS.escape(id)}"]`);
+      if (!control) continue;
+      if (typeof value === "boolean") {
+        setCheckboxValue(id, value);
+      } else if (control.tagName === "SELECT") {
+        setSelectByValue(id, value, "valor predeterminado");
+      } else {
+        setValue(control, value);
+      }
+    }
   }
 
   function hasGridRows() {
@@ -188,9 +235,8 @@
     if (!numeroAfiliado) {
       fail("Numero de afiliado invalido. Use solo digitos, o prefijo F/M seguido de digitos.");
     }
+    resetSearchFilters();
     setValue(getRequired("vAUCANROAFI_NUMERO_AFILIADO"), numeroAfiliado);
-    setSelectByValue("vNFLGVISTA", "0", "Todas");
-    setSelectByValue("vMODALIDAD", "1", "Autorizacion Previa");
     setCheckboxChecked("vREQCOMPRA");
 
     const searchButton = getRequired("SEARCHBUTTON");
