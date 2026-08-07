@@ -23,7 +23,7 @@
     vNOMEFE: "",
     vAUCAESPEFC: "",
     vORDEREDBY: "0",
-    vMDMEDCODIGOSNCHECK: false
+    vMDMEDCODIGOSNCHECK: "T"
   };
 
   function fail(message, details) {
