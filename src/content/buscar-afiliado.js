@@ -77,30 +77,26 @@
     emit(checkbox, "change");
   }
 
-  function setCheckboxValue(id, checked) {
-    const checkbox = document.getElementById(id) || document.querySelector(`[name="${CSS.escape(id)}"]`);
-    if (!checkbox) return;
-    if (checkbox.type !== "checkbox") {
-      fail(`${id} no es un checkbox`);
+  function setFilterValueSilently(id, value) {
+    const control = document.getElementById(id) || document.querySelector(`[name="${CSS.escape(id)}"]`);
+    if (!control) return;
+    if (typeof value === "boolean") {
+      if (control.type !== "checkbox") {
+        fail(`${id} no es un checkbox`);
+      }
+      control.checked = value;
+      control.value = value ? "S" : "N";
+      return;
     }
-    if (checkbox.checked !== checked) {
-      checkbox.checked = checked;
-      emit(checkbox, "input");
-      emit(checkbox, "change");
+    if (control.tagName === "SELECT" && !Array.from(control.options).some((option) => option.value === value)) {
+      fail(`No se encontro el valor predeterminado "${value}" en ${id}`);
     }
+    control.value = value;
   }
 
   function resetSearchFilters() {
     for (const [id, value] of Object.entries(SEARCH_FILTER_DEFAULTS)) {
-      const control = document.getElementById(id) || document.querySelector(`[name="${CSS.escape(id)}"]`);
-      if (!control) continue;
-      if (typeof value === "boolean") {
-        setCheckboxValue(id, value);
-      } else if (control.tagName === "SELECT") {
-        setSelectByValue(id, value, "valor predeterminado");
-      } else {
-        setValue(control, value);
-      }
+      setFilterValueSilently(id, value);
     }
   }
 
@@ -237,6 +233,8 @@
     }
     resetSearchFilters();
     setValue(getRequired("vAUCANROAFI_NUMERO_AFILIADO"), numeroAfiliado);
+    setSelectByValue("vNFLGVISTA", "0", "Todas");
+    setSelectByValue("vMODALIDAD", "1", "Autorizacion Previa");
     setCheckboxChecked("vREQCOMPRA");
 
     const searchButton = getRequired("SEARCHBUTTON");
